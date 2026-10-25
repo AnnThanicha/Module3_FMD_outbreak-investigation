@@ -1,0 +1,1964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Module 3: Outbreak Investigation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: sticky step rail on the left (top drawer on phones), one view at a time on the right.
+   Palette: field-green ink on a faintly green paper; amber marks "outbreak / caution". */
+:root{
+  --bg:#F4F7F5; --surface:#FFFFFF; --sunk:#EAF0EC;
+  --ink:#15201C; --ink-2:#3F4E48; --muted:#64746D; --line:#D5DED9;
+  --accent:#0D6A5B; --accent-ink:#FFFFFF; --accent-soft:#DDEFE9;
+  --alert:#A9520C; --alert-soft:#FBEADB;
+  --good:#23772F; --good-soft:#E2F2E3; --bad:#B0281F; --bad-soft:#FBE4E1;
+  --bar:#0D6A5B; --grid:#E3EAE6;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1C2723;
+  --ink:#E4ECE8; --ink-2:#BAC7C1; --muted:#8C9C95; --line:#2B3833;
+  --accent:#4DBFA6; --accent-ink:#0B1A16; --accent-soft:#17332C;
+  --alert:#EFA463; --alert-soft:#3A2717;
+  --good:#7FCB84; --good-soft:#18301B; --bad:#F2887E; --bad-soft:#3B1C19;
+  --bar:#4DBFA6; --grid:#24302C; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1C2723;
+  --ink:#E4ECE8; --ink-2:#BAC7C1; --muted:#8C9C95; --line:#2B3833;
+  --accent:#4DBFA6; --accent-ink:#0B1A16; --accent-soft:#17332C;
+  --alert:#EFA463; --alert-soft:#3A2717;
+  --good:#7FCB84; --good-soft:#18301B; --bad:#F2887E; --bad-soft:#3B1C19;
+  --bar:#4DBFA6; --grid:#24302C; color-scheme:dark;}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+h1,h2,h3,h4{font-family:var(--f-display);line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:2rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.55rem;font-weight:700}
+h3{font-size:1.15rem;font-weight:700}
+h4{font-size:1rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--f-mono);font-size:.92em}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;
+  display:flex;align-items:center;gap:12px}
+.topbar .brand{display:flex;flex-direction:column;min-width:0;flex:1}
+.topbar .kicker{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.topbar .name{font-family:var(--f-display);font-weight:700;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.progress{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:.8rem;color:var(--muted);white-space:nowrap}
+.progress .track{width:110px;height:6px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.progress .fill{height:100%;background:var(--accent);width:0;transition:width .3s}
+.menu-btn{display:none;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:6px 10px;cursor:pointer}
+
+/* shell */
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);max-width:1240px;margin:0 auto;gap:32px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+nav.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);align-self:start;max-height:calc(100vh - 100px);overflow:auto}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rail .grp{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 10px 6px}
+.rail a{display:grid;grid-template-columns:28px 1fr 16px;align-items:center;gap:6px;padding:7px 10px;border-radius:6px;text-decoration:none;color:var(--ink-2);font-size:.92rem;line-height:1.3}
+.rail a:hover{background:var(--sunk)}
+.rail a[aria-current="page"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.rail .n{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);text-align:right}
+.rail .tick{color:var(--good);font-size:.85rem;visibility:hidden}
+.rail a.done .tick{visibility:visible}
+main{min-width:0}
+.view{display:flex;flex-direction:column;gap:22px;min-width:0}
+.view-head{display:flex;flex-direction:column;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lede{font-size:1.06rem;color:var(--ink-2);max-width:68ch}
+.prose{display:flex;flex-direction:column;gap:12px;max-width:72ch}
+.prose ul,.prose ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
+
+/* blocks */
+.block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.block > h3{display:flex;align-items:baseline;gap:10px}
+.tag{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:var(--sunk);color:var(--ink-2);white-space:nowrap}
+.tag.fmd{background:var(--alert-soft);color:var(--alert)}
+.tag.check{background:var(--accent-soft);color:var(--accent)}
+.tag.warn{background:var(--bad-soft);color:var(--bad)}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 14px;color:var(--ink);font-weight:500;max-width:70ch}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.two > *{min-width:0}
+.fmd-ex{background:var(--alert-soft);border-color:transparent}
+.fmd-ex .src{color:var(--ink-2)}
+.src{font-size:.8rem;color:var(--muted);font-style:italic}
+.pitfall{display:flex;flex-direction:column;gap:6px}
+.pitfall li::marker{color:var(--bad)}
+.term{font-weight:600;border-bottom:1px dotted var(--muted);cursor:help}
+.formula{font-family:var(--f-mono);background:var(--sunk);border-radius:6px;padding:10px 12px;overflow-x:auto;white-space:pre;font-size:.9rem;line-height:1.55}
+.keyterms{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.keyterms div{background:var(--sunk);border-radius:6px;padding:10px 12px;font-size:.92rem}
+.keyterms b{display:block;font-family:var(--f-display)}
+.table-wrap{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;font-size:.92rem;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{font-weight:600;background:var(--sunk)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:.88rem}
+details.more{border-top:1px dashed var(--line);padding-top:8px}
+details.more summary{cursor:pointer;color:var(--accent);font-weight:600}
+
+/* interactive */
+.q{display:flex;flex-direction:column;gap:10px;padding:14px 0;border-top:1px solid var(--line)}
+.q:first-of-type{border-top:0;padding-top:0}
+.q .prompt{font-weight:600}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 12px;cursor:pointer;line-height:1.4}
+.opt:hover{border-color:var(--accent)}
+.opt .k{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);padding-top:1px;min-width:1.2em}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--good);background:var(--good-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.fb{border-radius:6px;padding:10px 12px;font-size:.94rem;display:flex;flex-direction:column;gap:6px}
+.fb.ok{background:var(--good-soft)}
+.fb.no{background:var(--bad-soft)}
+.fb.info{background:var(--sunk)}
+.fb b.v{font-family:var(--f-display)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{text-decoration:none;display:inline-block;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:600;line-height:1.2}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{padding:5px 10px;font-size:.88rem}
+.btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:.85rem;color:var(--ink-2);font-weight:500}
+input[type=number],input[type=text],input[type=date],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;max-width:100%}
+input[type=number]{width:8.5em;font-family:var(--f-mono)}
+input.ok,select.ok{border-color:var(--good);background:var(--good-soft)}
+input.no,select.no{border-color:var(--bad);background:var(--bad-soft)}
+textarea{width:100%;min-height:96px;resize:vertical;line-height:1.5}
+.grid-inputs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.calc-out{font-family:var(--f-mono);font-size:.9rem;background:var(--sunk);border-radius:6px;padding:10px 12px;white-space:pre-wrap;overflow-x:auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:.92rem;line-height:1.3}
+.chip.on{background:var(--accent-soft);border-color:var(--accent)}
+.chip.right{background:var(--good-soft);border-color:var(--good)}
+.chip.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.chip.miss{border-style:dashed;border-color:var(--good)}
+.seq{display:flex;flex-direction:column;gap:6px;counter-reset:s}
+.seq .slot{display:flex;gap:10px;align-items:center;border:1px dashed var(--line);border-radius:6px;padding:7px 10px;min-height:38px;font-size:.94rem}
+.seq .slot::before{counter-increment:s;content:counter(s);font-family:var(--f-mono);color:var(--muted);min-width:1.4em;text-align:right}
+.seq .slot.filled{border-style:solid;background:var(--surface)}
+.seq .slot.right{border-color:var(--good);background:var(--good-soft)}
+.seq .slot.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.classify{display:flex;flex-direction:column;gap:8px}
+.classify .item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--surface)}
+.classify .item .why2{grid-column:1/-1;font-size:.88rem;color:var(--ink-2)}
+@media (max-width:560px){.classify .item{grid-template-columns:1fr}}
+
+/* svg charts */
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+.chart .ax{stroke:var(--line);stroke-width:1}
+.chart .gr{stroke:var(--grid);stroke-width:1}
+.chart .bar{fill:var(--bar)}
+.chart .bar:hover,.chart .bar.hi{fill:var(--alert)}
+.chart .lbl{fill:var(--ink-2)}
+.chart .strong{fill:var(--ink);font-weight:500}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-family:var(--f-mono);font-size:.8rem;padding:5px 8px;border-radius:4px;z-index:50;opacity:0;transition:opacity .1s}
+.diagram{width:100%;height:auto;display:block}
+.diagram text{font-family:var(--f-body);fill:var(--ink)}
+.diagram .muted{fill:var(--muted)}
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.mini figure{margin:0;background:var(--sunk);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.mini figcaption{font-size:.88rem;display:flex;flex-direction:column;gap:4px}
+
+/* 2x2 */
+.tt{display:grid;grid-template-columns:110px repeat(2,minmax(0,1fr)) 70px;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:.9rem}
+.tt > div{padding:8px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);min-height:44px}
+.tt .h{background:var(--sunk);font-weight:600}
+.tt .cell{cursor:pointer;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+.tt .cell:hover{background:var(--accent-soft)}
+.tt .cell .lab{width:100%;font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.cow{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-radius:4px;padding:2px 6px;background:var(--surface);cursor:pointer}
+.cow.sel{outline:2px solid var(--accent)}
+.cow.right{background:var(--good-soft);border-color:var(--good)}
+.cow.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.pool{display:flex;flex-wrap:wrap;gap:6px}
+
+/* exercise */
+.brief{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--alert);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.update{background:var(--alert-soft);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.update .when{font-family:var(--f-mono);font-size:.78rem;color:var(--alert);letter-spacing:.04em;text-transform:uppercase}
+.excard{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);display:flex;flex-direction:column;gap:14px;padding:18px 20px}
+.excard .exhead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.excard .exn{font-family:var(--f-mono);font-size:.8rem;color:var(--accent)}
+.excard .use{font-size:.88rem;color:var(--ink-2);background:var(--sunk);border-radius:6px;padding:8px 10px}
+.excard .use b{font-family:var(--f-mono);font-weight:500}
+.locked{border-style:dashed;color:var(--muted);text-align:center;padding:14px}
+.gate{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:12px}
+.gate .note{font-size:.85rem;color:var(--muted);margin-right:auto}
+.rubric{display:flex;flex-direction:column;gap:6px}
+.rubric label{display:flex;gap:8px;align-items:flex-start}
+.model{background:var(--sunk);border-radius:6px;padding:10px 12px;font-size:.94rem;display:flex;flex-direction:column;gap:6px}
+.model ul{margin:0;padding-left:1.2em}
+.pager{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.notice{font-size:.9rem;background:var(--sunk);border-radius:6px;padding:10px 12px;color:var(--ink-2)}
+.exq{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:10px;max-width:75ch}
+.exq li::marker{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+.exq ul.qb{margin:4px 0 0;padding-left:1.1em;display:flex;flex-direction:column;gap:2px;font-size:.96rem}
+.exq ul.qb li::marker{color:var(--muted);font-family:inherit}
+.extable{margin-top:10px}
+.extable table{font-size:.82rem}
+.extable th,.extable td{padding:6px 7px}
+.extable th{font-family:var(--f-body);font-size:.78rem;line-height:1.25;vertical-align:bottom}
+.extable td:first-child{min-width:170px}
+.use ul.qb{margin:4px 0 0;padding-left:1.1em}
+.slides{font-size:.92rem;border-top:1px dashed var(--line);padding-top:10px;color:var(--ink-2)}
+.imgfig{margin:0;display:flex;flex-direction:column;gap:6px}
+.imgfig img{max-width:100%;height:auto;border-radius:6px;border:1px solid var(--line);background:#fff}
+.score{font-family:var(--f-display);font-size:2.2rem;font-weight:700}
+.summary pre{white-space:pre-wrap;font-family:var(--f-mono);font-size:.85rem;background:var(--sunk);padding:12px;border-radius:6px;max-height:520px;overflow:auto}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:16px}
+  nav.rail{position:fixed;inset:calc(env(safe-area-inset-top,0px) + 58px) 0 0 0;max-height:none;background:var(--surface);z-index:15;
+    padding:8px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:none}
+  nav.rail.open{display:block}
+  .menu-btn{display:inline-block}
+  .progress .track{width:60px}
+  h1{font-size:1.6rem}
+}
+@media (max-width:480px){.progress .lbl{display:none}.topbar .kicker{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{.topbar,nav.rail,.pager,.gate,.btn{display:none!important}.shell{display:block}.view[hidden]{display:none!important}}
+</style>
+
+</head>
+<body>
+<div class="tip" id="tip" role="tooltip"></div>
+<header class="topbar">
+  <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="rail">Steps</button>
+  <div class="brand"><span class="kicker">Veterinary Epidemiology · Module 3</span><span class="name">Outbreak Investigation</span></div>
+  <div class="progress" aria-label="Progress"><span class="lbl">Progress</span><div class="track"><div class="fill" id="progFill"></div></div><span id="progTxt">0/12</span></div>
+</header>
+
+<div class="shell">
+<nav class="rail" id="rail" aria-label="Module sections">
+  <ol>
+    <li class="grp">Start</li>
+    <li><a href="#intro" data-v="intro"><span class="n">00</span><span>Why outbreaks happen</span><span class="tick">✓</span></a></li>
+    <li class="grp">The 10 steps</li>
+    <li><a href="#s1" data-v="s1"><span class="n">01</span><span>Prepare for fieldwork</span><span class="tick">✓</span></a></li>
+    <li><a href="#s2" data-v="s2"><span class="n">02</span><span>Establish outbreak existence</span><span class="tick">✓</span></a></li>
+    <li><a href="#s3" data-v="s3"><span class="n">03</span><span>Verify the diagnosis</span><span class="tick">✓</span></a></li>
+    <li><a href="#s4" data-v="s4"><span class="n">04</span><span>Define and identify cases</span><span class="tick">✓</span></a></li>
+    <li><a href="#s5" data-v="s5"><span class="n">05</span><span>Time, place and animal</span><span class="tick">✓</span></a></li>
+    <li><a href="#s6" data-v="s6"><span class="n">06</span><span>Develop hypotheses</span><span class="tick">✓</span></a></li>
+    <li><a href="#s7" data-v="s7"><span class="n">07</span><span>Evaluate hypotheses (RR)</span><span class="tick">✓</span></a></li>
+    <li><a href="#s8" data-v="s8"><span class="n">08</span><span>Refine &amp; extra studies</span><span class="tick">✓</span></a></li>
+    <li><a href="#s9" data-v="s9"><span class="n">09</span><span>Control and prevention</span><span class="tick">✓</span></a></li>
+    <li><a href="#s10" data-v="s10"><span class="n">10</span><span>Communicate findings</span><span class="tick">✓</span></a></li>
+    <li class="grp">Apply it</li>
+    <li><a href="#exercise" data-v="exercise"><span class="n">EX</span><span>Investigation: Kenya 2012</span><span class="tick">✓</span></a></li>
+  </ol>
+</nav>
+<main id="main">
+<style>
+.d-box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.d-acc{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.d-alt{fill:var(--alert-soft);stroke:var(--alert);stroke-width:1.5}
+.d-sunk{fill:var(--sunk);stroke:none}
+.d-line{stroke:var(--ink-2);stroke-width:1.5;fill:none}
+.d-dash{stroke:var(--muted);stroke-width:1.2;fill:none;stroke-dasharray:4 4}
+.d-arrow{fill:var(--ink-2)}
+.d-t{fill:var(--ink);font-size:13px}
+.d-tb{fill:var(--ink);font-size:14px;font-weight:600}
+.d-ts{fill:var(--ink-2);font-size:11.5px}
+.d-tm{fill:var(--muted);font-size:11px;font-family:var(--f-mono)}
+.d-ta{fill:var(--alert);font-size:12px;font-weight:600}
+.d-tc{fill:var(--accent);font-size:12px;font-weight:600}
+.d-win-s{fill:var(--accent);opacity:.25}
+.d-win-p{fill:var(--alert);opacity:.22}
+</style>
+
+<!-- ============ INTRO ============ -->
+<section class="view" id="v-intro" data-view="intro">
+  <div class="view-head">
+    <span class="eyebrow">Start here</span>
+    <h1>Why outbreaks happen, and why we investigate</h1>
+    <p class="lede">An outbreak investigation is detective work. You find out what the disease is, where it came from, how it spreads, and how to stop it. This module walks you through the 10 steps, using foot-and-mouth disease (FMD) as the example. At the end, you investigate a real FMD outbreak on a Kenyan dairy farm using its data.</p>
+  </div>
+
+  <div class="block">
+    <h3>Learning outcomes</h3>
+    <div class="prose"><p>By the end of this module you should be able to:</p>
+    <ol>
+      <li>Explain what an outbreak is and why we investigate it.</li>
+      <li>List and describe the 10 steps of an outbreak investigation in order.</li>
+      <li>Write working, probable and confirmed case definitions for FMD.</li>
+      <li>Calculate attack rate (risk) and incidence rate (per animal-time), and explain when to use each.</li>
+      <li>Build and read an epidemic curve, and identify point-source, intermittent, continuous common-source and propagated patterns.</li>
+      <li>Construct tracing windows using FMD incubation periods (minimum 2 days, maximum 14 days).</li>
+      <li>Build a 2×2 table, then calculate and interpret a relative risk (RR) with its 95% CI.</li>
+      <li>Explain common reasons why vaccinated herds still get FMD.</li>
+      <li>Choose control measures and write a short outbreak report.</li>
+    </ol></div>
+  </div>
+
+  <div class="block">
+    <h3>Key words <span class="tag">WOAH definitions</span></h3>
+    <div class="keyterms">
+      <div><b>Outbreak</b>One or more cases in an epidemiological unit. In practice: disease events clustered in time and space.</div>
+      <div><b>Case</b>An individual animal infected by a pathogenic agent, with or without clinical signs.</div>
+      <div><b>Epidemiological unit</b>A group of animals with the same likelihood of exposure to an agent (a herd, a pen, a village sharing grazing).</div>
+      <div><b>Index case</b>The first case (animal, farm or village) identified in an outbreak.</div>
+      <div><b>Incubation period</b>Time from infection to the first clinical signs. For FMD: 2–14 days, usually 2–8.</div>
+      <div><b>Susceptible</b>An animal that can be infected because it has no protective immunity.</div>
+    </div>
+    <p class="src">Source: WOAH SRRSEA slides (Rinzin, 2025), "What is an outbreak?"; SEACFMD Field Manual (2018), §7.2 p.23 and App. B.2 p.A-50.</p>
+  </div>
+
+  <div class="block">
+    <h3>Why investigate an outbreak?</h3>
+    <div class="two">
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>To identify the source(s) of infection.</li>
+        <li>To prevent further exposure to that source.</li>
+        <li>To find where the disease has spread, and stop it.</li>
+      </ul>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>To guide control measures during and after the outbreak.</li>
+        <li>To learn how the disease behaves.</li>
+        <li>To learn the risks and routes of introduction, to prevent the next one.</li>
+      </ul>
+    </div>
+    <p class="src">Source: WOAH slides, "Why investigate an outbreak?"</p>
+  </div>
+
+  <div class="block">
+    <h3>The 10 steps at a glance</h3>
+    <p>The steps run in order, but in real life they overlap. For example, you start simple control measures as soon as you suspect FMD (Step 9 ideas), long before you finish Step 8.</p>
+    <svg class="diagram" viewBox="0 0 720 230" role="img" aria-label="Flowchart of the 10 steps grouped into four phases">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="d-arrow"/></marker></defs>
+      <text x="10" y="18" class="d-tm">GET READY</text><text x="148" y="18" class="d-tm">VERIFY</text><text x="286" y="18" class="d-tm">INVESTIGATE</text><text x="586" y="18" class="d-tm">ACT</text>
+      <g>
+        <rect x="10" y="28" width="128" height="62" rx="8" class="d-sunk"/><text x="20" y="52" class="d-tc">01</text><text x="20" y="72" class="d-t">Prepare fieldwork</text>
+        <rect x="148" y="28" width="128" height="62" rx="8" class="d-alt"/><text x="158" y="52" class="d-ta">02</text><text x="158" y="72" class="d-t">Outbreak exists?</text>
+        <rect x="286" y="28" width="128" height="62" rx="8" class="d-alt"/><text x="296" y="52" class="d-ta">03</text><text x="296" y="72" class="d-t">Verify diagnosis</text>
+        <rect x="424" y="28" width="128" height="62" rx="8" class="d-acc"/><text x="434" y="52" class="d-tc">04</text><text x="434" y="72" class="d-t">Define cases</text>
+        <rect x="562" y="28" width="148" height="62" rx="8" class="d-acc"/><text x="572" y="52" class="d-tc">05</text><text x="572" y="72" class="d-t">Time, place, animal</text>
+      </g>
+      <g>
+        <rect x="562" y="130" width="148" height="62" rx="8" class="d-acc"/><text x="572" y="154" class="d-tc">06</text><text x="572" y="174" class="d-t">Develop hypotheses</text>
+        <rect x="424" y="130" width="128" height="62" rx="8" class="d-acc"/><text x="434" y="154" class="d-tc">07</text><text x="434" y="174" class="d-t">Test with RR</text>
+        <rect x="286" y="130" width="128" height="62" rx="8" class="d-acc"/><text x="296" y="154" class="d-tc">08</text><text x="296" y="174" class="d-t">Refine, study more</text>
+        <rect x="148" y="130" width="128" height="62" rx="8" class="d-box"/><text x="158" y="154" class="d-tc">09</text><text x="158" y="174" class="d-t">Control, prevent</text>
+        <rect x="10" y="130" width="128" height="62" rx="8" class="d-box"/><text x="20" y="154" class="d-tc">10</text><text x="20" y="174" class="d-t">Communicate</text>
+      </g>
+      <path d="M138 59H146M276 59H284M414 59H422M552 59H560" class="d-line" marker-end="url(#ah)"/>
+      <path d="M636 90V128" class="d-line" marker-end="url(#ah)"/>
+      <path d="M562 161H554M424 161H416M286 161H278M148 161H140" class="d-line" marker-end="url(#ah)"/>
+      <path d="M74 200 V218 H690 V194" class="d-dash"/>
+      <text x="250" y="214" class="d-tm">communication happens at every step, not only at the end</text>
+    </svg>
+    <p class="src">Source: WOAH slides, "Steps by steps guide to outbreak investigation and management"; SEACFMD Field Manual §10.2 p.37.</p>
+  </div>
+
+  <div class="block">
+    <h3>Check yourself <span class="tag check">Order</span></h3>
+    <p>Tap the steps in the correct order (1 to 10). Tap a filled slot to remove it.</p>
+    <div class="seqw" data-id="order10"></div>
+  </div>
+
+  <div class="block fmd-ex">
+    <h3>The running case <span class="tag fmd">FMD village, 2008</span></h3>
+    <p>Throughout the 10 lessons we follow one example from the SEACFMD Field Manual. On <b>21 October 2008</b> you receive a report of sick cattle in a village. At the village, farmers tell you that <b>Farm 1</b> saw signs first, on <b>12 October</b>. Then Farm 6 (18 Oct), Farm 5 (19 Oct), Farm 3 (20 Oct) and Farm 2 (21 Oct) were affected. Farm 4 has no clinical signs. Several farms use a <b>common grazing area</b>.</p>
+    <p>In each step, the orange box shows how that step applies to this village or to FMD in general.</p>
+    <p class="src">Source: SEACFMD Field Manual §5.2 Fig. 10 p.17 and §7.2 Fig. 13 p.24.</p>
+  </div>
+  <div class="pager"><span></span><a class="btn" href="#s1">Start Step 1 →</a></div>
+</section>
+
+<!-- ============ STEP 1 ============ -->
+<section class="view" id="v-s1" data-view="s1" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 01 · Get ready</span>
+    <h1>Prepare for fieldwork</h1>
+    <p class="lede">The investigation starts when the phone rings, not when you reach the farm. Record the report, pack the right kit, and collect background information before you leave.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <div class="prose">
+      <p>You record the first report in a log book. You ask the <b>4 Ws and 1 H</b>: What? When? Where? Why? How? Then you prepare equipment, plan biosecurity, and gather information about the place and the suspected disease.</p>
+    </div>
+    <p class="why">Why it matters: good preparation lets you start control measures on the first visit, and stops you from carrying the virus to the next farm.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Key actions</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li><b>Log-book entry:</b> who reported, location, species, number sick and dead, signs, date of onset.</li>
+        <li><b>Team:</b> decide roles. Plan a separate "clean" team for visits to farms not yet affected.</li>
+        <li><b>Equipment:</b> PPE, restraint, disinfectant, sampling kit, forms, GPS and maps.</li>
+        <li><b>Biosecurity plan:</b> leave the vehicle outside; visit clean areas first and sick groups last; disinfect boots, equipment and vehicle on leaving.</li>
+        <li><b>Background:</b> previous outbreaks in the area, markets, slaughterhouses, animal trade routes.</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h3>The 4 Ws and 1 H</h3>
+      <div class="table-wrap"><table>
+        <tr><th>Question</th><th>Example</th></tr>
+        <tr><td><b>What?</b></td><td>Which species and age groups are affected?</td></tr>
+        <tr><td><b>When?</b></td><td>When did it start? When did it spread to other farms?</td></tr>
+        <tr><td><b>Where?</b></td><td>Where did it start? Where are the other affected farms?</td></tr>
+        <tr><td><b>Why?</b></td><td>Why did it occur in this area?</td></tr>
+        <tr><td><b>How?</b></td><td>How did the agent get onto this farm? How did it behave?</td></tr>
+      </table></div>
+      <p class="src">Source: SEACFMD Field Manual §1.4 p.2.</p>
+    </div>
+  </div>
+  <div class="block">
+    <h3>Farm records to request before the visit <span class="tag">needed for Step 5</span></h3>
+    <p>On a commercial farm, records are your best data. Ask for them early. Together they become your <span class="term" title="A table with one row per animal and one column per piece of information">line list</span>.</p>
+    <div class="keyterms">
+      <div><b>Herd register</b>Animal ID (ear tag), birth date, sex, breed.</div>
+      <div><b>Group lists</b>Which animal is in which pen or paddock, and when.</div>
+      <div><b>Movement records</b>Animals moved between groups, bought, sold, born or dead.</div>
+      <div><b>Vaccination records</b>Dates, vaccine type and which animals were vaccinated.</div>
+      <div><b>Milk records</b>A sudden drop in milk yield is an early FMD sign.</div>
+      <div><b>Treatment records</b>Who was treated, when and for what.</div>
+    </div>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Village 2008</span></h3>
+    <p>The log-book entry for the village reads: farmer's name and address, "cattle and buffalo drooling, not eating, some lame", number sick, and the date. From this alone you can already suspect a vesicular disease such as FMD, so you pack a sampling kit with <b>glycerine buffer tubes</b> for epithelium, a cool box, disinfectant (for FMD, for example 4% washing soda or 1–2% sodium hydroxide), and forms.</p>
+    <p class="src">Source: SEACFMD Field Manual §4.1–4.2 p.11–13 (Figs 8–9); App. D Equipment checklist p.A-61–62.</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself <span class="tag check">Pack the kit</span></h3>
+    <div class="multi" data-id="s1pack"></div>
+    <div class="mcq" data-id="s1q1"></div>
+    <div class="mcq" data-id="s1q2"></div>
+  </div>
+  <div class="block">
+    <h3>Common mistakes <span class="tag warn">avoid</span></h3>
+    <ul class="pitfall">
+      <li>Driving your vehicle onto the farm. Park outside the farm gate.</li>
+      <li>Visiting the sick group first, then healthy groups. Always go from clean to dirty.</li>
+      <li>Forgetting to ask for herd and movement records. Without them you cannot calculate rates later.</li>
+    </ul>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#intro">← Overview</a><a class="btn" href="#s2">Step 2 →</a></div>
+</section>
+
+<!-- ============ STEP 2 ============ -->
+<section class="view" id="v-s2" data-view="s2" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 02 · Verify</span>
+    <h1>Establish outbreak existence</h1>
+    <p class="lede">Is there really more disease than usual? Or is it chance, a change in reporting, or a problem the farmer has always had?</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <div class="prose">
+      <p>You compare the <b>observed</b> number of cases with the <b>expected</b> number for this place and time. An outbreak means a <b>true excess</b>. Use objective data (records, counts), not only memories.</p>
+      <p>Remember to count the animals <b>at risk</b>. Ten sick cows means something different in a herd of 20 than in a herd of 2,000.</p>
+    </div>
+    <p class="why">Why it matters: you do not want to waste resources on a false alarm, but you must not miss a real outbreak.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Key actions</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>Get counts: animals at risk, sick and dead, by species and age.</li>
+        <li>Find the expected level: past records, neighbouring farms, surveillance data.</li>
+        <li>Ask what the farmer thinks is "normal". Long-term problems make people accept high levels.</li>
+        <li>Check for <b>artefacts</b>: a new vet, a new test, or a campaign that increases reporting.</li>
+        <li>Remember: farmers' and workers' opinions are poor proof of an excess, but rich sources of hypotheses.</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h3>Special case: a vaccinated herd <span class="tag">needed for the exercise</span></h3>
+      <p>In a herd that is vaccinated regularly against FMD, the expected number of clinical FMD cases is <b>close to zero</b>. So even a few cases signal a real problem.</p>
+      <p>FMD is a <b>notifiable</b> disease. A suspected case must be reported to the national veterinary authority, which reports to WOAH.</p>
+    </div>
+  </div>
+  <div class="block">
+    <h3>Outbreak or not? <span class="tag">Preweaning mortality example</span></h3>
+    <p>Two pig farms recorded monthly preweaning mortality from 1993 to 1997. The drawings below copy the shape of the two graphs in the WOAH slides (illustrative values).</p>
+    <div class="mini">
+      <figure><svg class="chart" id="pwA" viewBox="0 0 300 150" role="img" aria-label="Farm A preweaning mortality, rising and staying above average after 1995"></svg><figcaption><b>Farm A</b></figcaption></figure>
+      <figure><svg class="chart" id="pwB" viewBox="0 0 300 150" role="img" aria-label="Farm B preweaning mortality, stable around the average"></svg><figcaption><b>Farm B</b></figcaption></figure>
+    </div>
+    <div class="mcq" data-id="s2q1"></div>
+    <p class="src">Source: WOAH slides, "Is there a true excess (more than usual) of disease?"</p>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Village 2008</span></h3>
+    <p>In the village, 23 of 130 cattle and buffalo are sick with drooling and foot lesions within 10 days. Farmers say they have not seen this since a previous outbreak years ago. Observed (23) is far above expected (about 0), and the signs are severe and similar. This is enough to treat it as an outbreak and start control measures while you confirm the diagnosis.</p>
+    <p class="src">Source: SEACFMD Field Manual §5 p.14–15; §4.1 p.11 (independent reports from more than one source are strong evidence of a true outbreak).</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself</h3>
+    <div class="mcq" data-id="s2q2"></div>
+    <div class="mcq" data-id="s2q3"></div>
+  </div>
+  <div class="block">
+    <h3>Common mistakes <span class="tag warn">avoid</span></h3>
+    <ul class="pitfall">
+      <li>Comparing case counts without the number at risk.</li>
+      <li>Ignoring a report because "it has already recovered". A finished outbreak still tells you about its source.</li>
+    </ul>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s1">← Step 1</a><a class="btn" href="#s3">Step 3 →</a></div>
+</section>
+
+<!-- ============ STEP 3 ============ -->
+<section class="view" id="v-s3" data-view="s3" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 03 · Verify</span>
+    <h1>Verify the diagnosis</h1>
+    <p class="lede">Examine the animals, list the differentials, take the right samples, and get laboratory confirmation. For FMD you also need the <b>serotype</b>.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <div class="prose">
+      <p>You make a clinical diagnosis, then confirm it in the laboratory. Do not wait for the lab result to start control measures. If several animals show vesicles in the mouth or on the feet, act on the suspicion.</p>
+    </div>
+    <p class="why">Why it matters: the diagnosis decides the incubation period, the control measures and the vaccine you use.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>FMD clinical signs</h3>
+      <div class="table-wrap"><table>
+        <tr><th>Species</th><th>Signs</th></tr>
+        <tr><td><b>Cattle</b></td><td>Fever (≈40 °C, 1–2 days); vesicles on tongue, gums, lips, dental pad, feet and teats; profuse drooling (hyperptyalism); dramatic drop in milk yield; lameness; off feed. Young calves may die suddenly (myocarditis).</td></tr>
+        <tr><td><b>Pigs</b></td><td>Lameness; vesicles on coronary band and heel (most consistent sign), snout and tongue; huddling; piglet deaths.</td></tr>
+        <tr><td><b>Sheep, goats</b></td><td>Signs are mild and easy to miss. Lameness is often the first sign. Examine 10–20 animals.</td></tr>
+      </table></div>
+      <p class="src">Source: SEACFMD Field Manual App. B.5 p.A-52–53.</p>
+    </div>
+    <div class="block">
+      <h3>Ageing lesions</h3>
+      <p>Lesion age tells you when signs started, and so when exposure happened.</p>
+      <div class="table-wrap"><table>
+        <tr><th class="num">Day</th><th>Appearance</th></tr>
+        <tr><td class="num">1</td><td>Blanching, then fluid-filled vesicles.</td></tr>
+        <tr><td class="num">2</td><td>Freshly ruptured: raw epithelium, clear edge, no fibrin.</td></tr>
+        <tr><td class="num">3</td><td>Edge less sharp, less red; fibrin starts.</td></tr>
+        <tr><td class="num">4</td><td>Much fibrin; epithelium regrowing at the edge.</td></tr>
+        <tr><td class="num">7</td><td>Extensive scar tissue and healing; some fibrin.</td></tr>
+      </table></div>
+      <p class="src">Source: SEACFMD Field Manual App. B.6, Table 5 p.A-54.</p>
+    </div>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Samples and tests</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li><b>Epithelium</b> from fresh or ruptured vesicles, and <b>vesicular fluid</b>: best for finding the virus. Put epithelium in glycerine buffer; keep cool.</li>
+        <li><b>Serum</b> (plain tube): for antibodies.</li>
+        <li><b>Antigen ELISA</b> and <b>RT-PCR</b>: detect the virus and give the serotype.</li>
+        <li><b>VNT</b> and <b>SP-ELISA</b>: serotype-specific antibodies (from infection or vaccination).</li>
+        <li><b>NSP-ELISA</b>: antibodies to non-structural proteins. These appear after <b>infection</b>, not after vaccination with a purified vaccine. Useful in vaccinated herds.</li>
+      </ul>
+      <p class="src">Source: SEACFMD Field Manual App. B.3 p.A-51–52; App. F.1 p.A-69.</p>
+    </div>
+    <div class="block">
+      <h3>Serotypes and vaccine matching <span class="tag">needed for the exercise</span></h3>
+      <p>FMD virus has <b>7 serotypes</b>: O, A, C, SAT1, SAT2, SAT3 and Asia1. There is <b>no cross-protection between serotypes</b>. Within a serotype, strains vary, and a vaccine gives only partial protection against a distant strain.</p>
+      <p><b>Vaccine matching</b> is a lab test that asks: "Do antibodies made against the vaccine strain also neutralise the field strain?" The result is an r1 value; higher means a closer match.</p>
+      <p>Differential diagnoses for vesicles in cattle include vesicular stomatitis, and for mouth lesions bovine viral diarrhoea and bluetongue.</p>
+      <p class="src">Source: SEACFMD Field Manual App. B.1 p.A-48, App. B.2 "Immunity" p.A-51; Lyons et al. (2015) §1.</p>
+    </div>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Village 2008</span></h3>
+    <p>On 21 October you examine cattle on Farm 2 and find fresh ruptured vesicles with clear edges and no fibrin (about day 2). On Farm 1 you find lesions with heavy fibrin and regrowth (about day 4 or older). This fits Farm 1 being affected first. You collect epithelium from fresh lesions into glycerine buffer and serum from several animals, and send them chilled to the reference laboratory.</p>
+    <p class="src">Source: built from SEACFMD Field Manual App. B.6 p.A-54 and App. F p.A-69 (teaching scenario).</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself</h3>
+    <div class="mcq" data-id="s3q1"></div>
+    <div class="mcq" data-id="s3q2"></div>
+  </div>
+  <div class="block">
+    <h3>Common mistakes <span class="tag warn">avoid</span></h3>
+    <ul class="pitfall">
+      <li>Waiting for lab results before starting any control measures.</li>
+      <li>Sampling only old, healed lesions. Fresh epithelium gives the best virus yield.</li>
+      <li>Assuming "the herd is vaccinated, so it cannot be FMD".</li>
+    </ul>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s2">← Step 2</a><a class="btn" href="#s4">Step 4 →</a></div>
+</section>
+
+<!-- ============ STEP 4 ============ -->
+<section class="view" id="v-s4" data-view="s4" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 04 · Investigate</span>
+    <h1>Define and identify cases</h1>
+    <p class="lede">A case definition is a simple rule that decides who counts as a case. Everyone on the team uses the same rule, so your counts can be trusted.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <div class="prose">
+      <p>A case definition has four parts: <b>animal</b> (species, age), <b>place</b>, <b>time</b>, and <b>clinical and/or lab criteria</b>. It gets stricter as you learn more:</p>
+    </div>
+    <div class="keyterms">
+      <div><b>Working (suspect) case</b>Signs only. "Cattle in Village X since 1 Oct 2008 with salivation and foot and/or mouth lesions."</div>
+      <div><b>Probable case</b>Typical signs plus a link to a confirmed case (same herd, shared grazing), but not tested.</div>
+      <div><b>Confirmed case</b>Lab-confirmed FMD virus or antigen (e.g. antigen ELISA, RT-PCR), with the serotype.</div>
+    </div>
+    <p class="why">Why it matters: without a fixed definition, two people count different animals, and the attack rates in Step 5 mean nothing.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Key actions</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>Write a working definition on day 1. Refine it when lab results arrive.</li>
+        <li>Use it for <b>active case finding</b>: go and look for cases, do not wait for reports.</li>
+        <li>Decide your <b>unit</b>: the animal, the group, or the farm. A farm-level case could be "≥1 animal with FMD-like lesions".</li>
+        <li>For FMD, cases within 2 weeks of the previous case belong to the same outbreak (SEACFMD definition).</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h3>Broad or strict? <span class="tag">needed for the exercise</span></h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li><b>Broad definition</b> (sensitive): finds more true cases, but also includes animals that do not have FMD.</li>
+        <li><b>Strict definition</b> (specific): almost every case is real, but mild cases are missed.</li>
+        <li>Example: a definition that needs <b>drooling</b> may miss young calves, because FMD signs in calves can be mild. Their risk will then look lower than it really is.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">SEACFMD definitions</span></h3>
+    <p><b>Outbreak definition:</b> "FMD in one or more animals on a farm, in a village, or in a group of animals sharing a common area (pasture, watering point, slaughterhouse, market). All cases within 2 weeks of the previous case are part of the same outbreak."</p>
+    <p><b>Farm-level working definition</b> from the WOAH slides: "more than 10% of animals with FMD-like lesions in mouth and/or claws within one month".</p>
+    <p class="src">Source: SEACFMD Field Manual §7.1 p.22; WOAH slides, "Establish a case definition for active case finding".</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself <span class="tag check">Classify each animal</span></h3>
+    <p>Case definitions for this outbreak: <b>working</b> = salivation plus foot or mouth lesions, cattle/buffalo in Village X from 1 Oct 2008; <b>probable</b> = working + shares grazing with a confirmed case; <b>confirmed</b> = antigen ELISA positive.</p>
+    <div class="cls" data-id="s4cls"></div>
+    <div class="mcq" data-id="s4q1"></div>
+  </div>
+  <div class="block">
+    <h3>Common mistakes <span class="tag warn">avoid</span></h3>
+    <ul class="pitfall">
+      <li>Including a possible cause (e.g. "shared grazing") in a definition you later use to test that cause. You will find the association you built in.</li>
+      <li>Changing the definition halfway without recording when it changed.</li>
+    </ul>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s3">← Step 3</a><a class="btn" href="#s5">Step 5 →</a></div>
+</section>
+
+<!-- ============ STEP 5 ============ -->
+<section class="view" id="v-s5" data-view="s5" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 05 · Investigate</span>
+    <h1>Describe by time, place and animal</h1>
+    <p class="lede">This is descriptive epidemiology. You count, calculate rates, draw the epidemic curve and the map, and compare groups. This step needs the most calculation, so take your time.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <p>You describe <b>who</b> (animal) got sick, <b>where</b> (place) and <b>when</b> (time). Patterns in these three point you towards the source and the route of spread.</p>
+    <p class="why">Why it matters: hypotheses in Step 6 come straight from these descriptions.</p>
+  </div>
+
+  <div class="block">
+    <h3>5.1 The line list <span class="tag">one row = one animal</span></h3>
+    <p>Put your data in a table with one row per animal. Each column is one piece of information.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Animal_ID</th><th>Group</th><th>Birth date</th><th>Breed</th><th class="num">Vaccine doses</th><th>Case (1/0)</th><th>Onset date</th><th class="num">Days at risk</th></tr>
+      <tr><td class="mono">KE1007</td><td>Y10</td><td>28/12/2010</td><td>100% exotic</td><td class="num">4</td><td>1</td><td>05/09/2012</td><td class="num">5</td></tr>
+      <tr><td class="mono">KE1010</td><td>Y7</td><td>24/10/2011</td><td>25–49% zebu</td><td class="num">2</td><td>0</td><td></td><td class="num">28</td></tr>
+    </table></div>
+    <p class="src">Format of the Kenya exercise file (LineList sheet). Values shown are examples.</p>
+  </div>
+
+  <div class="block">
+    <h3>5.2 Attack rate (risk)</h3>
+    <div class="formula">Attack rate = new cases ÷ animals at risk at the start
+95% CI      = p ± 1.96 × √( p(1 − p) / n )</div>
+    <p>Use the attack rate when the group is <b>closed</b>: the same animals are followed for the whole period. "Attack rate", "incidence risk" and "cumulative incidence" mean the same thing.</p>
+    <div class="fmd-ex block" style="padding:12px 14px">
+      <p><b>Village example.</b> 100 cattle and 30 buffalo; 20 cattle and 3 buffalo sick.</p>
+      <ul style="margin:0;padding-left:1.2em">
+        <li>Overall: 23 ÷ 130 = 0.177 → <b>18 per 100</b> (95% CI 11 to 24). The manual prints 13–27 because it put 0.2 instead of 0.18 into the CI step.</li>
+        <li>Cattle: 20 ÷ 100 = 20 per 100. Buffalo: 3 ÷ 30 = 10 per 100.</li>
+        <li>Young cattle: 30 ÷ 30 = 100 per 100. Older cattle: 30 ÷ 150 = 20 per 100.</li>
+      </ul>
+      <p class="src">Source: SEACFMD Field Manual §5.1 "Attack rates" p.14–15.</p>
+    </div>
+    <h4>Attack rate calculator</h4>
+    <div class="row">
+      <div class="field"><label for="arC">Cases</label><input type="number" id="arC" value="23" min="0"></div>
+      <div class="field"><label for="arN">Animals at risk</label><input type="number" id="arN" value="130" min="1"></div>
+      <button class="btn" id="arGo">Calculate</button>
+    </div>
+    <div class="calc-out" id="arOut" aria-live="polite"></div>
+    <p class="src">The ± formula is an approximation. With small numbers or rates near 0% or 100% it can go below 0 or above 100; the calculator cuts it at those limits.</p>
+  </div>
+
+  <div class="block">
+    <h3>5.3 Incidence rate (per animal-time) <span class="tag">needed for the exercise</span></h3>
+    <p>On a real farm, animals do not stay still. They are born, move between groups, are sold or die. Then the number "at risk at the start" is not clear. Instead, count the <b>time</b> each animal was at risk.</p>
+    <div class="formula">Incidence rate = new cases ÷ total animal-time at risk
+               (e.g. × 100 → cases per 100 cattle-days)
+95% CI         = IR × exp( ± 1.96 / √cases )</div>
+    <p>An animal stops adding time when it becomes a case, moves out, is sold or dies. An animal that moves in or is born starts adding time on that day.</p>
+    <svg class="chart" id="adSvg" viewBox="0 0 640 230" role="img" aria-label="Timeline of five animals over 10 days showing their days at risk"></svg>
+    <div class="row">
+      <div class="field"><label for="adDays">Total animal-days</label><input type="number" id="adDays" step="1"></div>
+      <div class="field"><label for="adIR">IR per 100 animal-days</label><input type="number" id="adIR" step="0.01"></div>
+      <button class="btn" id="adGo">Check</button>
+    </div>
+    <div id="adFb" aria-live="polite"></div>
+  </div>
+
+  <div class="block">
+    <h3>Attack rate and incidence rate can rank groups differently</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Group</th><th class="num">Animals</th><th class="num">Cases</th><th class="num">Attack rate</th><th class="num">Cattle-days</th><th class="num">IR /100 cattle-days</th></tr>
+      <tr><td>P (cases in the first 3 days)</td><td class="num">10</td><td class="num">8</td><td class="num">80%</td><td class="num">40</td><td class="num">20.0</td></tr>
+      <tr><td>Q (cases spread over 3 weeks)</td><td class="num">10</td><td class="num">9</td><td class="num">90%</td><td class="num">120</td><td class="num">7.5</td></tr>
+    </table></div>
+    <p>Q has the higher attack rate (more animals got sick in the end). P has the higher incidence rate (animals got sick <b>faster</b>). The attack rate tells you "how many"; the incidence rate tells you "how fast".</p>
+    <p class="src">Teaching example (illustrative numbers).</p>
+  </div>
+
+  <div class="block">
+    <h3>5.4 Time: the epidemic curve</h3>
+    <div class="prose">
+      <p>An epidemic curve is a histogram: <b>x-axis = date of onset</b>, <b>y-axis = number of new cases</b>, bars touching. Choose an interval of about ¼ to ⅓ of the incubation period. For FMD, daily bars work well.</p>
+      <p>The shape tells you how animals were exposed:</p>
+    </div>
+    <figure class="imgfig">
+      <img src="epidemic%20curve.png" alt="Examples of epidemic curve types" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+      <p class="notice" hidden>Image "epidemic curve.png" not found. Put the file in the same folder as this page.</p>
+    </figure>
+    <div class="keyterms">
+      <div><b>Point source</b>One short exposure. Steep rise, one peak, slower fall. All cases within one incubation period. Example: one contaminated feed delivery.</div>
+      <div><b>Intermittent common source</b>One source, but exposure stops and starts. Irregular, jagged peaks.</div>
+      <div><b>Continuous common source</b>Exposure goes on. Fast rise, then a plateau instead of a peak. Example: infectious diarrhoea from a contaminated water supply.</div>
+      <div><b>Propagated</b>Animal-to-animal spread. A series of peaks about one incubation period apart, often getting taller. Typical of uncontrolled FMD.</div>
+    </div>
+    <p class="src">Source: SEACFMD Field Manual §2.5 p.6–8, Fig. 4; WOAH slides, "Describe the occurrence of disease in terms of time".</p>
+  </div>
+
+  <div class="block">
+    <h3>Index case, primary and secondary cases</h3>
+    <div class="keyterms">
+      <div><b>Index case</b>The first case found. Assumed to have been exposed to the original source.</div>
+      <div><b>Primary cases</b>Infected directly from the source.</div>
+      <div><b>Secondary cases</b>Infected by primary cases. Each round of spread is a <b>generation</b>, about one incubation period apart.</div>
+    </div>
+  </div>
+
+  <div class="block">
+    <h3>Estimating the exposure period</h3>
+    <p>This works for a <b>point-source</b> outbreak, where animals were exposed over a short time. You need the minimum, average and maximum incubation periods. For FMD the field manual uses <b>minimum 2 days, average 4 days, maximum 14 days</b>.</p>
+    <ol class="prose" style="padding-left:1.3em;margin:0">
+      <li><b>Earliest possible exposure</b> = <b>last case</b> − <b>maximum</b> incubation period.</li>
+      <li><b>Latest possible exposure</b> = <b>first case</b> − <b>minimum</b> incubation period.</li>
+      <li><b>Check:</b> <b>peak</b> (or median case) − <b>average</b> incubation period should fall inside this window. It points to the most likely date.</li>
+    </ol>
+    <p>The window runs from step 1 to step 2. Because the method is not precise, widen it by 10–20% on each side.</p>
+    <p><b>Worked example.</b> A point-source FMD outbreak in a feedlot. First case <b>10 March</b>, peak <b>12 March</b>, last case <b>20 March</b>.</p>
+    <svg class="chart" id="expSvg" viewBox="0 0 680 300" role="img" aria-label="Point-source epidemic curve with the exposure window found by counting back the maximum incubation from the last case and the minimum incubation from the first case"></svg>
+    <ol class="prose" style="padding-left:1.3em;margin:0">
+      <li>Last case (20 March) − maximum incubation (14 days) = <b>6 March</b> (window opens).</li>
+      <li>First case (10 March) − minimum incubation (2 days) = <b>8 March</b> (window closes).</li>
+      <li>Peak (12 March) − average incubation (4 days) = <b>8 March</b>. This is inside the window, so the estimate is consistent.</li>
+      <li>Most likely exposure period: <b>6–8 March</b>, most likely around 8 March. Widen it a little (about 5–9 March), then ask what happened on the farm in those days: new feed, visitors, animals brought in.</li>
+    </ol>
+    <p class="notice">If the peak − average date falls <b>outside</b> the window, exposure was probably not a single short event. Think again: it may be a continuous or propagated outbreak, where this method does not apply. For a propagated outbreak such as most FMD outbreaks, use the <b>index case</b> and the tracing windows in Step 8 instead.</p>
+    <p class="src">Source: SEACFMD Field Manual §2.5 "Estimating the time of exposure" p.7 (peak and first-case steps); the last-case step follows the standard method of counting back the maximum incubation period from the last case. Curve values are illustrative.</p>
+  </div>
+
+  <div class="block">
+    <h3>5.5 Place: the sketch map</h3>
+    <p>Draw the farm or village. Mark each affected unit with its <b>date of onset</b>. Add roads, shared grazing, water points, the milking parlour and other shared facilities.</p>
+    <svg class="diagram" viewBox="0 0 520 300" role="img" aria-label="Sketch of the 2008 village with six farms, a shared grazing area and onset dates">
+      <rect x="0" y="0" width="520" height="300" rx="8" class="d-sunk"/>
+      <path d="M0 170 C120 150 260 160 520 120" class="d-line" style="stroke-width:6;stroke:var(--line)"/>
+      <path d="M250 0 V300" class="d-line" style="stroke-width:5;stroke:var(--line)"/>
+      <ellipse cx="230" cy="185" rx="80" ry="38" style="fill:var(--alert);opacity:.22"/>
+      <text x="230" y="190" text-anchor="middle" class="d-ta">common grazing</text>
+      <rect x="40" y="80" width="110" height="44" rx="6" class="d-alt"/><text x="50" y="100" class="d-tb">Farm 1</text><text x="50" y="117" class="d-ts">12 Oct · index</text>
+      <rect x="40" y="235" width="110" height="44" rx="6" class="d-alt"/><text x="50" y="255" class="d-tb">Farm 2</text><text x="50" y="272" class="d-ts">21 Oct</text>
+      <rect x="290" y="20" width="110" height="44" rx="6" class="d-alt"/><text x="300" y="40" class="d-tb">Farm 3</text><text x="300" y="57" class="d-ts">20 Oct</text>
+      <rect x="400" y="75" width="110" height="44" rx="6" class="d-box"/><text x="410" y="95" class="d-tb">Farm 4</text><text x="410" y="112" class="d-ts">no signs</text>
+      <rect x="270" y="120" width="110" height="40" rx="6" class="d-alt"/><text x="280" y="138" class="d-tb">Farm 5</text><text x="280" y="154" class="d-ts">19 Oct</text>
+      <rect x="390" y="230" width="110" height="44" rx="6" class="d-alt"/><text x="400" y="250" class="d-tb">Farm 6</text><text x="400" y="267" class="d-ts">18 Oct</text>
+    </svg>
+    <p class="src">Redrawn from SEACFMD Field Manual Fig. 10 p.17 (positions approximate).</p>
+    <div class="mcq" data-id="s5q1"></div>
+  </div>
+
+  <div class="block">
+    <h3>Common mistakes <span class="tag warn">avoid</span></h3>
+    <ul class="pitfall">
+      <li>Drawing the epidemic curve as a line chart or with gaps between bars.</li>
+      <li>Using the attack rate when many animals entered or left during the outbreak. Use animal-time instead.</li>
+      <li>Ignoring outliers. A very early case may be the source.</li>
+    </ul>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s4">← Step 4</a><a class="btn" href="#s6">Step 6 →</a></div>
+</section>
+<!-- ============ STEP 6 ============ -->
+<section class="view" id="v-s6" data-view="s6" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 06 · Investigate</span>
+    <h1>Develop hypotheses</h1>
+    <p class="lede">A hypothesis is a clear, testable guess: "this exposure increases (or decreases) the risk of disease". Your descriptive results from Step 5 are the main source.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <div class="prose">
+      <p>You turn patterns into statements you can test. Each hypothesis names the <b>exposure</b>, the <b>comparison group</b>, and the <b>expected direction</b>.</p>
+      <p>Hypotheses cover three questions: the <b>source</b> (where did it come from?), the <b>route</b> (how did it spread?) and the <b>risk factors</b> (which animals were more likely to get sick?).</p>
+    </div>
+    <p class="why">Why it matters: a vague idea ("hygiene was poor") cannot be tested. A clear hypothesis can.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Where hypotheses come from</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>Descriptive results: the epidemic curve, the map, stratified attack rates.</li>
+        <li>Observations by farmers, stock workers and other vets.</li>
+        <li>The literature: known routes for this disease.</li>
+        <li>Participatory tools: <b>mapping</b> (movements, grazing, water), <b>proportional piling</b> (which route is most likely), <b>matrix scoring</b> (signs vs diseases), <b>timelines</b>.</li>
+      </ul>
+      <p>Rank your hypotheses by how likely they are. Work on the top ones first.</p>
+      <p class="src">Source: WOAH slides, "Develop hypotheses about the nature of exposure"; SEACFMD Field Manual §9 p.29–35.</p>
+    </div>
+    <div class="block">
+      <h3>FMD routes on a farm <span class="tag">needed for the exercise</span></h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li><b>Direct contact</b> between infected and susceptible animals (fence-line contact, mixing).</li>
+        <li><b>Fomites:</b> people, boots, clothes, vehicles, equipment.</li>
+        <li><b>Shared facilities:</b> milking parlour, feed troughs, dip, water points.</li>
+        <li><b>Milk</b> and animal products.</li>
+        <li><b>Short-range airborne spread</b> (expired air; cattle are very sensitive by the respiratory route).</li>
+        <li><b>Movement of incubating animals</b>: virus is shed up to 4 days before signs.</li>
+      </ul>
+      <p class="src">Source: SEACFMD Field Manual App. B.2 p.A-49–50.</p>
+    </div>
+  </div>
+  <div class="block">
+    <h3>Writing H1 and H0</h3>
+    <div class="formula">H1 (research hypothesis): Cattle that share grazing with an infected herd
+                          have a HIGHER risk of FMD than cattle that do not.   (expect RR > 1)
+H0 (null hypothesis):     The risk is the SAME in both groups.                  (RR = 1)</div>
+    <p>We test H0. If the data show a risk ratio clearly different from 1, we reject H0 and our evidence supports H1.</p>
+  </div>
+  <div class="block">
+    <h3>Animal-level vs group-level exposures <span class="tag">needed for the exercise</span></h3>
+    <div class="two">
+      <div><p><b>Animal-level</b>: a characteristic of each animal. It can differ between animals in the same group.</p><p style="color:var(--ink-2)">Age, breed, parity, number of vaccine doses.</p></div>
+      <div><p><b>Group-level</b>: applies to a whole group at once. All animals in the group share it.</p><p style="color:var(--ink-2)">"Grazed next to an infected paddock", "milked through the parlour", "group was moved along the road".</p></div>
+    </div>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Village 2008</span></h3>
+    <p>The sketch map shows Farm 1 first (12 Oct), then farms near the common grazing area 6–9 days later. Farm 4 does not use the grazing area and has no cases. Hypothesis: <b>"Cattle using the common grazing area have a higher risk of FMD than cattle that do not (RR > 1)."</b> Source hypothesis: Farm 1 was infected by a visitor or animals brought in between 29 Sep and 10 Oct (see Step 8).</p>
+    <p class="src">Source: SEACFMD Field Manual Fig. 10 p.17 and §7.2 p.25.</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself</h3>
+    <div class="mcq" data-id="s6q1"></div>
+    <div class="cls" data-id="s6lvl"></div>
+  </div>
+  <div class="block">
+    <h3>Practice: writing H1 and H0 <span class="tag check">5 questions</span></h3>
+    <div class="mcq" data-id="s6q2"></div>
+    <div class="mcq" data-id="s6h1"></div>
+    <div class="mcq" data-id="s6h2"></div>
+    <div class="mcq" data-id="s6h3"></div>
+    <div class="mcq" data-id="s6h4"></div>
+    <div class="mcq" data-id="s6h5"></div>
+  </div>
+  <div class="block">
+    <h3>Try writing them yourself</h3>
+    <p>Write H1 and H0 for each situation on paper first, then open the model answer.</p>
+    <details class="more"><summary>1. Pigs fed kitchen waste (swill) seem to get FMD more often than pigs fed commercial feed.</summary>
+      <div class="model" style="margin-top:8px"><p><b>H1:</b> Pigs fed swill have a higher risk of FMD than pigs fed only commercial feed (RR &gt; 1).</p><p><b>H0:</b> The risk of FMD is the same in swill-fed and commercially fed pigs (RR = 1).</p></div></details>
+    <details class="more"><summary>2. A village vaccinated half its cattle last month. Farmers think vaccinated cattle are getting sick less often.</summary>
+      <div class="model" style="margin-top:8px"><p><b>H1:</b> Cattle vaccinated last month have a lower risk of FMD than unvaccinated cattle (RR &lt; 1).</p><p><b>H0:</b> The risk of FMD is the same in vaccinated and unvaccinated cattle (RR = 1).</p></div></details>
+    <details class="more"><summary>3. Cattle bought at the district market in the last 2 weeks were the first to show signs on several farms.</summary>
+      <div class="model" style="margin-top:8px"><p><b>H1:</b> Farms that bought cattle at the market in the 2 weeks before onset have a higher risk of FMD than farms that did not (RR &gt; 1). Unit = farm.</p><p><b>H0:</b> The risk of FMD is the same in farms that did and did not buy cattle at the market (RR = 1).</p></div></details>
+  </div>
+  <div class="block">
+    <h3>Common mistakes <span class="tag warn">avoid</span></h3>
+    <ul class="pitfall">
+      <li>Writing a hypothesis without a comparison group.</li>
+      <li>Testing only the hypothesis you already believe. List the alternatives too.</li>
+    </ul>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s5">← Step 5</a><a class="btn" href="#s7">Step 7 →</a></div>
+</section>
+
+<!-- ============ STEP 7 ============ -->
+<section class="view" id="v-s7" data-view="s7" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 07 · Investigate</span>
+    <h1>Evaluate hypotheses with the relative risk</h1>
+    <p class="lede">Now you test each hypothesis with numbers. You compare the risk of disease in exposed animals with the risk in unexposed animals.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <div class="prose"><p>An <b>analytical study</b> compares groups to find out whether an exposure is linked to disease. In an outbreak where you know <b>every animal</b> and follow all of them, you have a <b>cohort</b>. In a cohort you can calculate risk directly, so you use the <b>relative risk (RR)</b>.</p></div>
+    <p class="why">Why it matters: the RR turns "it looks like" into "the risk was 2.3 times higher, and this is unlikely to be chance".</p>
+  </div>
+  <div class="block">
+    <h3>Cohort or case-control?</h3>
+    <svg class="diagram" viewBox="0 0 680 210" role="img" aria-label="Cohort study starts from exposure and follows forward; case-control starts from disease and looks back">
+      <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="d-arrow"/></marker></defs>
+      <text x="10" y="20" class="d-tb">Cohort: start from EXPOSURE → follow forward</text>
+      <rect x="10" y="32" width="140" height="34" rx="6" class="d-acc"/><text x="20" y="54" class="d-t">Exposed animals</text>
+      <rect x="10" y="74" width="140" height="34" rx="6" class="d-box"/><text x="20" y="96" class="d-t">Unexposed animals</text>
+      <path d="M155 70 H300" class="d-line" marker-end="url(#ah2)"/><text x="170" y="62" class="d-tm">time →</text>
+      <rect x="305" y="32" width="150" height="76" rx="6" class="d-alt"/><text x="315" y="56" class="d-t">Count new cases</text><text x="315" y="76" class="d-ts">risk exposed vs</text><text x="315" y="92" class="d-ts">risk unexposed → RR</text>
+      <text x="10" y="140" class="d-tb">Case-control: start from DISEASE → look back</text>
+      <rect x="305" y="152" width="150" height="34" rx="6" class="d-alt"/><text x="315" y="174" class="d-t">Cases + controls</text>
+      <path d="M300 169 H160" class="d-line" marker-end="url(#ah2)"/><text x="190" y="161" class="d-tm">← history</text>
+      <rect x="10" y="152" width="145" height="34" rx="6" class="d-box"/><text x="20" y="174" class="d-t">Past exposure?</text>
+      <text x="480" y="56" class="d-ts">Whole herd known and</text><text x="480" y="72" class="d-ts">followed → cohort → RR.</text>
+      <text x="480" y="168" class="d-ts">Only some animals sampled;</text><text x="480" y="184" class="d-ts">risk cannot be calculated.</text>
+    </svg>
+    <p class="notice">Side note: in a case-control study you cannot calculate risk, so a different measure (the odds ratio) is used. You will meet it in a later module. In this module we use the RR.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>The 2×2 table</h3>
+      <div class="table-wrap"><table>
+        <tr><th></th><th class="num">Case</th><th class="num">Non-case</th><th class="num">Total</th></tr>
+        <tr><th>Exposed</th><td class="num">a</td><td class="num">b</td><td class="num">a + b</td></tr>
+        <tr><th>Unexposed</th><td class="num">c</td><td class="num">d</td><td class="num">c + d</td></tr>
+      </table></div>
+      <div class="formula">Risk exposed   = a / (a + b)
+Risk unexposed = c / (c + d)
+RR = [a/(a+b)] ÷ [c/(c+d)]</div>
+    </div>
+    <div class="block">
+      <h3>Interpreting the RR</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li><b>RR = 1</b>: no association. Same risk in both groups.</li>
+        <li><b>RR &gt; 1</b>: exposure linked to <b>higher</b> risk (possible risk factor).</li>
+        <li><b>RR &lt; 1</b>: exposure linked to <b>lower</b> risk (possibly protective).</li>
+      </ul>
+      <p>Say it in a sentence: <i>"Cattle over 18 months had 2.3 times the risk of clinical FMD of younger cattle (RR 2.3, 95% CI 1.9–2.8)."</i></p>
+    </div>
+  </div>
+  <div class="block">
+    <h3>The 95% confidence interval</h3>
+    <div class="formula">95% CI = exp( ln RR ± 1.96 × √( 1/a − 1/(a+b) + 1/c − 1/(c+d) ) )
+
+In Excel (a in B2, b in C2, c in B3, d in C3):
+  RR     =(B2/(B2+C2))/(B3/(B3+C3))
+  SE     =SQRT(1/B2-1/(B2+C2)+1/B3-1/(B3+C3))
+  Lower  =EXP(LN(RR)-1.96*SE)
+  Upper  =EXP(LN(RR)+1.96*SE)</div>
+    <p><b>Does the CI include 1?</b> If yes, the result is <b>not statistically significant</b>: chance could explain it. If the whole CI is above 1 (or below 1), the association is unlikely to be chance.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Choosing the reference group</h3>
+      <p>The reference group is the "unexposed" baseline (RR = 1). Choose a large group that makes sense as a comparison, for example the most common age group or "no vaccine doses".</p>
+      <p>For a variable with several levels (e.g. 5 age groups), compare <b>each level</b> with the <b>same reference</b>, one 2×2 table at a time.</p>
+    </div>
+    <div class="block">
+      <h3>Restriction <span class="tag">needed for the exercise</span></h3>
+      <p>Leave out animals that <b>could not have been exposed</b>, or that make the comparison unfair.</p>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>Studying a vaccination round on 22 May? Calves born after 22 May could not be vaccinated then. Exclude them.</li>
+        <li>Studying spread to neighbouring groups? The index group was the source, not a neighbour. Exclude it.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="block">
+    <h3>Check yourself <span class="tag check">Fill the 2×2 table</span></h3>
+    <p>Twelve cattle in a small herd. Exposure = drank from the shared trough. Count the animals and type the numbers into the table.</p>
+    <div id="tt2x2"></div>
+  </div>
+  <div class="block">
+    <h3>RR calculator</h3>
+    <div class="grid-inputs">
+      <div class="field"><label for="rrA">a (exposed cases)</label><input type="number" id="rrA" value="20" min="0"></div>
+      <div class="field"><label for="rrB">b (exposed non-cases)</label><input type="number" id="rrB" value="80" min="0"></div>
+      <div class="field"><label for="rrC">c (unexposed cases)</label><input type="number" id="rrC" value="3" min="0"></div>
+      <div class="field"><label for="rrD">d (unexposed non-cases)</label><input type="number" id="rrD" value="27" min="0"></div>
+    </div>
+    <div class="row"><button class="btn" id="rrGo">Calculate RR</button></div>
+    <div class="calc-out" id="rrOut" aria-live="polite"></div>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Village 2008</span></h3>
+    <p>The manual says cattle (20/100) are "twice as likely" to be affected as buffalo (3/30). Put these numbers in the calculator above (they are pre-filled). RR = 2.0, but the 95% CI is about <b>0.64 to 6.3</b>. It includes 1, so with only 3 sick buffalo we <b>cannot</b> be sure the difference is real.</p>
+    <p>Now try young cattle (30/30) vs older cattle (30/150): RR = 5.0, 95% CI about 3.6 to 6.9. This difference is very unlikely to be chance.</p>
+    <p class="src">Data: SEACFMD Field Manual §5.1 p.15. RR and CI calculated for this module.</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself</h3>
+    <div class="mcq" data-id="s7q1"></div>
+    <div class="mcq" data-id="s7q2"></div>
+    <div class="mcq" data-id="s7q3"></div>
+  </div>
+  <div class="block">
+    <h3>Common mistakes <span class="tag warn">avoid</span></h3>
+    <ul class="pitfall">
+      <li>Swapping rows and columns in the 2×2 table. Exposure goes in rows, disease in columns.</li>
+      <li>Saying "RR = 2, so the exposure causes FMD". An association is not proof of cause (see Step 8).</li>
+      <li>Ignoring the CI. An RR of 2 with a CI of 0.6–6.3 is weak evidence.</li>
+    </ul>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s6">← Step 6</a><a class="btn" href="#s8">Step 8 →</a></div>
+</section>
+
+<!-- ============ STEP 8 ============ -->
+<section class="view" id="v-s8" data-view="s8" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 08 · Investigate</span>
+    <h1>Refine hypotheses and carry out additional studies</h1>
+    <p class="lede">The first answers raise new questions. Is the association real or caused by something else? Where exactly did the virus come from, and where did it go? Do we need more data?</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <p>You check your results for <b>confounding</b>, trace the source and spread with <b>tracing windows</b>, and plan extra studies (lab, serology, follow-up visits) to fill the gaps.</p>
+    <p class="why">Why it matters: control measures based on a wrong conclusion waste money and leave the real route open.</p>
+  </div>
+
+  <div class="block">
+    <h3>8.1 Confounding <span class="tag">needed for the exercise</span></h3>
+    <p>Confounding happens when two exposures <b>travel together</b>. You see an effect of exposure A, but it is really caused by exposure B.</p>
+    <p>Example: only adult cows are milked through the parlour. Adults also have a higher FMD risk (Step 5). So is the parlour a risk, or is it just age?</p>
+    <div class="table-wrap"><table>
+      <tr><th>Group</th><th>Parlour</th><th class="num">Cases / animals</th><th class="num">Risk</th><th class="num">RR (parlour vs no parlour)</th></tr>
+      <tr><td rowspan="2"><b>All animals</b></td><td>Yes</td><td class="num">80 / 100</td><td class="num">80%</td><td class="num" rowspan="2"><b>2.0</b></td></tr>
+      <tr><td>No</td><td class="num">60 / 150</td><td class="num">40%</td></tr>
+      <tr><td rowspan="2"><b>Adults only</b></td><td>Yes</td><td class="num">80 / 100</td><td class="num">80%</td><td class="num" rowspan="2"><b>1.0</b></td></tr>
+      <tr><td>No (dry cows, heifers)</td><td class="num">40 / 50</td><td class="num">80%</td></tr>
+      <tr><td><b>Young animals</b></td><td>No</td><td class="num">20 / 100</td><td class="num">20%</td><td class="num">—</td></tr>
+    </table></div>
+    <p>Overall, the parlour looks like it doubles the risk. Within adults, it makes no difference. Here the "parlour effect" was really an age effect. Two simple checks: <b>stratify</b> (compare within age groups) or <b>restrict</b> (analyse adults only).</p>
+    <p class="src">Teaching example (illustrative numbers).</p>
+  </div>
+
+  <div class="block">
+    <h3>8.2 Why vaccinated herds still get FMD <span class="tag">needed for the exercise</span></h3>
+    <div class="keyterms">
+      <div><b>Strain mismatch</b>The field virus differs from the vaccine strain, even within the same serotype.</div>
+      <div><b>Cold-chain failure</b>Vaccine stored or transported too warm loses potency.</div>
+      <div><b>Timing / waning immunity</b>Protection fades. Vaccine immunity usually lasts months, not years.</div>
+      <div><b>Too few doses</b>No booster in the primary course.</div>
+      <div><b>Maternal antibodies</b>Can block the response to vaccine in young calves.</div>
+      <div><b>Low coverage</b>Animals that missed a round, or were born after it, are unprotected.</div>
+    </div>
+    <p class="src">Source: SEACFMD Field Manual App. B.2 "Immunity" p.A-51; Lyons et al. (2015) §4.</p>
+  </div>
+
+  <div class="block">
+    <h3>8.3 Group-level exposures and clustering</h3>
+    <p>Animals in the same group share the same paddock, water and neighbours. Their outcomes are <b>not independent</b>. If you analyse a group-level exposure at animal level, the CI looks narrower than it should. The conclusion is weaker than it looks. (Advanced methods, such as regression with group as a random effect, fix this. You do not need them in this module.)</p>
+  </div>
+
+  <div class="block">
+    <h3>8.4 Tracing windows</h3>
+    <div class="prose">
+      <p><b>Day 0</b> = date of first signs in the index case. Use the minimum and maximum incubation periods (FMD: 2 and 14 days).</p>
+      <ul>
+        <li><b>Window for the source</b> (trace-back): opens at day 0 − maximum; closes at day 0 − minimum.</li>
+        <li><b>Window for spread</b> (trace-forward): opens at day 0 − maximum; closes when no further spread is possible (e.g. the day effective controls start).</li>
+      </ul>
+      <p>Ask about every risk material during these windows: animals bought or sold, visitors, vehicles, feed, milk, vets.</p>
+    </div>
+    <div class="grid-inputs">
+      <div class="field"><label for="twD0">Day 0 (first signs, index case)</label><input type="date" id="twD0" value="2008-10-12"></div>
+      <div class="field"><label for="twMin">Minimum incubation (days)</label><input type="number" id="twMin" value="2" min="0"></div>
+      <div class="field"><label for="twMax">Maximum incubation (days)</label><input type="number" id="twMax" value="14" min="1"></div>
+      <div class="field"><label for="twCtrl">Controls start / investigation</label><input type="date" id="twCtrl" value="2008-10-21"></div>
+    </div>
+    <div class="row"><button class="btn" id="twGo">Build tracing windows</button></div>
+    <svg class="chart" id="twSvg" viewBox="0 0 680 170" role="img" aria-label="Timeline showing the tracing windows for source and spread"></svg>
+    <div class="calc-out" id="twOut" aria-live="polite"></div>
+    <p class="src">Default values from the SEACFMD Field Manual example, §7.2 p.23–27, Fig. 16 (the manual shows source 29 Sep–10 Oct and spread 29 Sep–21 Oct 2008).</p>
+  </div>
+
+  <div class="block">
+    <h3>8.5 Additional studies</h3>
+    <ul class="prose" style="padding-left:1.2em;margin:0">
+      <li><b>Vaccine matching</b> of the field strain against the vaccine strain.</li>
+      <li><b>Serology</b>: NSP-ELISA to find animals that were infected, including those with no signs (works best with NSP-purified vaccines).</li>
+      <li><b>Virus sequencing</b> to link outbreaks and find the origin.</li>
+      <li><b>Follow-up visits</b> to farms identified by tracing, by a <b>clean team</b> that has not been in the infected area.</li>
+      <li>A focused <b>case-control study</b> across farms, if the question involves many farms.</li>
+    </ul>
+  </div>
+
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Village 2008</span></h3>
+    <p>Within the source window (29 Sep–10 Oct) you learn that Farm 1 bought draught cattle at a market, and had a visitor from a nearby village who keeps cattle and pigs. Follow-up: no disease at the market, but the visitor's own animals had FMD-like signs before his visit. He is the most likely source. Within the spread window (29 Sep–21 Oct) you ask about all movements of animals, people, vehicles, milk and feed out of the village.</p>
+    <p class="src">Source: SEACFMD Field Manual §7.2 p.25–27.</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself</h3>
+    <div class="multi" data-id="s8vac"></div>
+    <div class="mcq" data-id="s8q1"></div>
+    <div class="mcq" data-id="s8q2"></div>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s7">← Step 7</a><a class="btn" href="#s9">Step 9 →</a></div>
+</section>
+
+<!-- ============ STEP 9 ============ -->
+<section class="view" id="v-s9" data-view="s9" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 09 · Act</span>
+    <h1>Implement control and prevention measures</h1>
+    <p class="lede">Break the chain of transmission. Start simple measures as soon as you suspect FMD, then adjust them as your findings come in.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <p>Three principles: <b>reduce contact</b> between infectious and susceptible animals, <b>reduce the number of susceptible animals</b> (vaccination), and <b>reduce the amount of virus</b> (cleaning and disinfection).</p>
+    <p class="why">Why it matters: this is the reason for the whole investigation. Findings from Steps 5–8 tell you which links to target.</p>
+    <p class="src">Source: SEACFMD Field Manual §2.6 p.9.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Immediate measures</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li><b>Stop animal movements</b> into, out of and within the affected area.</li>
+        <li>Isolate sick animals and groups. Stop shared grazing and shared water.</li>
+        <li>Restrict people and vehicles. Disinfect on leaving.</li>
+        <li>Strict biosecurity for the investigation team (vehicle outside, footbath, disinfect equipment).</li>
+        <li>Ring or emergency vaccination where a matching vaccine is available.</li>
+        <li>Supportive treatment of cases.</li>
+        <li>Risk communication to farmers.</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h3>Long-term actions</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>Update the farm or district disease control plan.</li>
+        <li>Review vaccination: schedule, coverage, strain choice, cold chain.</li>
+        <li>Policy changes (e.g. movement permits, market controls).</li>
+        <li>Farm contingency plans: pre-chosen isolation areas, staff rules.</li>
+      </ul>
+      <p class="src">Source: WOAH slides, "Control measures".</p>
+    </div>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>On-farm biosecurity for a dairy <span class="tag">needed for the exercise</span></h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>Isolate sick groups in a paddock away from roads and other groups.</li>
+        <li>Plan movement routes so infected animals never pass healthy groups.</li>
+        <li>Milk infected cows <b>last</b>; clean and disinfect the parlour after them.</li>
+        <li>No shared feed troughs or water between infected and healthy groups.</li>
+        <li>Assign each stock worker to one group. Boots, clothes and equipment stay with that group.</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h3>Disinfection and treatment</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>FMD virus is a "Category B" virus and is <b>sensitive to pH</b>. Use acids or alkalis: hypochlorite, sodium hydroxide, sodium carbonate (washing soda), Virkon, citric or hydrochloric acid.</li>
+        <li>Clean first (brush with detergent), then disinfect.</li>
+        <li>No specific treatment: soft feed and bedding, easy water access, extra milk for suckling young. Antibiotics only for real secondary infections.</li>
+        <li>Lift controls only <b>30 days after</b> clinical signs in the last infected premises have resolved.</li>
+      </ul>
+      <p class="src">Source: SEACFMD Field Manual §6.2–6.3 p.19–21; App. E.2 p.A-66.</p>
+    </div>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Village 2008</span></h3>
+    <p>On 21 October you stop animal movements into and out of the village, tell farmers to keep cattle tethered at home and away from the common grazing area and shared water point, and set up disinfection for people and vehicles leaving. Neighbouring villages are told not to use the shared water source. New cases should start falling about 1–4 days after effective controls, because animals infected earlier will still get sick.</p>
+    <p class="src">Source: SEACFMD Field Manual §6.2 p.19–20; §2.5 p.8.</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself <span class="tag check">Immediate or long-term?</span></h3>
+    <div class="cls" data-id="s9cls"></div>
+    <div class="mcq" data-id="s9q1"></div>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s8">← Step 8</a><a class="btn" href="#s10">Step 10 →</a></div>
+</section>
+
+<!-- ============ STEP 10 ============ -->
+<section class="view" id="v-s10" data-view="s10" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Step 10 · Act</span>
+    <h1>Communicate findings</h1>
+    <p class="lede">A finding that nobody reads changes nothing. Report quickly to the veterinary services, and give farmers short, clear messages they can act on.</p>
+  </div>
+  <div class="block">
+    <h3>What it is</h3>
+    <p>You write a <b>preliminary report</b> (1–2 pages) as soon as possible, then a full report later. You also brief stakeholders and hold meetings with farmers. Communication happens at every step, not only at the end.</p>
+    <p class="why">Why it matters: farmers follow control measures when they understand why. Decision makers need facts fast.</p>
+  </div>
+  <div class="two">
+    <div class="block">
+      <h3>Preliminary report outline</h3>
+      <ol class="prose" style="padding-left:1.3em;margin:0">
+        <li>Title and author</li>
+        <li>Background: who, what, when, where</li>
+        <li>Objective of the investigation</li>
+        <li>Methods and findings: how much, where from/to, transmission</li>
+        <li>Samples collected and lab results</li>
+        <li>Control measures taken and prescribed</li>
+        <li>Recommended follow-up: control and surveillance</li>
+      </ol>
+      <p class="src">Source: WOAH slides, "Communicate findings"; SEACFMD Field Manual §10.1 p.37.</p>
+    </div>
+    <div class="block">
+      <h3>Audiences</h3>
+      <ul class="prose" style="padding-left:1.2em;margin:0">
+        <li>Farm owner, managers and stock workers</li>
+        <li>District and national veterinary services (they notify WOAH)</li>
+        <li>Village animal health workers, private vets</li>
+        <li>Traders, market and slaughterhouse owners</li>
+        <li>Local authorities and the public</li>
+      </ul>
+      <p class="src">Source: SEACFMD Field Manual §10.2 p.39–40.</p>
+    </div>
+  </div>
+  <div class="block">
+    <h3>Presenting results <span class="tag">needed for the exercise</span></h3>
+    <ul class="prose" style="padding-left:1.2em;margin:0">
+      <li><b>Figure:</b> the epidemic curve, with key events marked (first case, movements, control measures).</li>
+      <li><b>Table:</b> attack rate or incidence rate by group.</li>
+      <li><b>Table:</b> RR with 95% CI for each risk factor.</li>
+      <li><b>One sentence per result:</b> "Animals with any zebu breeding had a lower risk than 100% exotic cattle (RR 0.73, 95% CI 0.59–0.92)."</li>
+    </ul>
+  </div>
+  <div class="block fmd-ex">
+    <h3>FMD example <span class="tag fmd">Key messages to farmers</span></h3>
+    <ol style="margin:0;padding-left:1.3em">
+      <li><b>Report.</b> Call the vet as soon as you see drooling, mouth or foot sores.</li>
+      <li><b>Stop animal movement.</b> Keep your animals at home. Do not use common grazing or water.</li>
+      <li><b>Do not buy or sell sick animals</b>, even at a low price.</li>
+    </ol>
+    <p>Use simple words and the local name for the disease. Ask open questions such as "What did you do after you saw your animal was sick?"</p>
+    <p class="src">Source: SEACFMD Field Manual §10.2 p.38–40.</p>
+  </div>
+  <div class="block">
+    <h3>Check yourself <span class="tag check">Order the report</span></h3>
+    <p>Tap the report sections in the right order.</p>
+    <div class="seqw" data-id="report7"></div>
+    <div class="mcq" data-id="s10q1"></div>
+    <div class="mcq" data-id="s10q2"></div>
+  </div>
+  <div class="pager"><a class="btn ghost" href="#s9">← Step 9</a><a class="btn" href="#exercise">Start the investigation →</a></div>
+</section>
+<!-- ============ EXERCISE ============ -->
+<section class="view" id="v-exercise" data-view="exercise" hidden>
+  <div class="view-head">
+    <span class="eyebrow">Apply it · Final exercise</span>
+    <h1>Be the investigator: FMD on a Kenyan dairy farm, 2012</h1>
+    <p class="lede">Work in your group through all 10 steps on a real outbreak, using a teaching dataset adapted from the published paper. Use the paper and the Excel data to answer the questions for each step, then <b>present your answers as a slide presentation</b>.</p>
+  </div>
+  <div class="block" style="border-left:4px solid var(--alert)">
+    <h3>Read this first: the paper and the dataset</h3>
+    <p><b>The paper.</b> This exercise is based on: Lyons NA, Stärk KDC, van Maanen C, et al. (2015). Epidemiological analysis of an outbreak of foot-and-mouth disease (serotype SAT2) on a large dairy farm in Kenya using regular vaccination. <i>Acta Tropica</i> 143:103–111. <a href="https://www.sciencedirect.com/science/article/pii/S0001706X14003027" target="_blank" rel="noopener">Read the paper on ScienceDirect</a>. Read it before you start; several questions ask you to find information in it.</p>
+    <p class="notice" style="background:var(--alert-soft);color:var(--ink)"><b>The dataset is NOT real data.</b> The paper does not publish records for individual animals. The Excel file is a <b>teaching dataset adapted from the paper's published summary tables</b>. Group sizes, numbers of cases, cattle-days, onset dates by group, and breed and age counts were made to match the paper. Animal IDs, birth dates, exact onset dates for each animal and movements between groups are <b>simulated</b>. Your results will be close to the paper, but not identical. Do not use this file as real data or cite it as the authors' data.</p>
+  </div>
+  <div class="row"><a class="btn" href="FMD_Kenya2012_raw_data.xlsx">Download the data (Excel)</a><a class="btn ghost" href="https://www.sciencedirect.com/science/article/pii/S0001706X14003027" target="_blank" rel="noopener">Open the paper</a><span style="font-size:.9rem;color:var(--muted)">Teaching dataset (adapted, not real). Sheets: README · LineList · Animals · Groups · Hypothesis_worksheet</span></div>
+  <div class="brief">
+    <span class="eyebrow" style="color:var(--alert)">Situation brief · Friday 31 August 2012</span>
+    <p>You are the district veterinary officer for Rongai sub-county, Nakuru County, Kenya. The livestock manager of a large commercial dairy farm calls you. This morning a stockman saw an <b>18-month-old heifer in youngstock group Y8</b> drooling heavily and not eating.</p>
+    <p>What you know about the farm:</p>
+    <ul style="margin:0;padding-left:1.2em">
+      <li>About 1,600 ha of mixed crops and dairy. About <b>644 cattle</b> in <b>18 management groups</b> (by age, weight, production and pregnancy), each in its own paddock, outside all day with a stockman.</li>
+      <li>About 100 sheep and 300 goats graze a few kilometres away. No pigs. Little wildlife; perimeter fence.</li>
+      <li>About 150 people work on the farm each day; about 25 handle livestock. No replacement animals are bought.</li>
+      <li>All lactating cows are milked twice a day through <b>one mobile milking parlour</b> and fed at <b>common troughs</b> during milking. All cattle go through <b>one central dip</b> once a week.</li>
+      <li>Cattle are vaccinated against FMD with a quadrivalent vaccine (<b>O, A, SAT1, SAT2</b>) about every 4 months. The <b>last round was 22 May 2012</b>.</li>
+      <li>Every animal has an ear tag. Births, movements and treatments are recorded in herd software.</li>
+    </ul>
+    <p class="src">Written from Lyons et al. (2015) §2.1–2.3.</p>
+  </div>
+  <figure class="imgfig"><img src="brief_photo.jpg" alt="Veterinary staff working with dairy cattle in a farm pen"></figure>
+  <div id="exCards">
+<article class="excard" data-ex="1"><div class="exhead"><span class="exn">STEP 01</span><h2>Prepare for fieldwork</h2></div><ol class="exq" start="1"><li>What will you prepare before visiting this FMD-suspected farm?<ul class="qb"><li>The team</li><li>PPE and biosecurity kit</li><li>Sampling kit</li><li>Forms and maps</li><li>Information and farm records to ask for</li></ul></li><li>Write the log-book entry for the manager's call.<ul class="qb"><li>Use the 4 Ws and 1 H</li></ul></li><li>Plan your farm visit.<ul class="qb"><li>In which order will you visit the groups?</li><li>What biosecurity steps will you take on arrival?</li><li>What will you do when you leave?</li></ul></li></ol></article>
+<article class="excard" data-ex="2"><div class="exhead"><span class="exn">STEP 02</span><h2>Establish outbreak existence</h2></div><div class="update"><span class="when">Update · 4 September 2012</span><p>The farm's last recorded FMD outbreak was in July 2004 (and that sample was negative). Only five animals now on the farm were present then. By 4 September, <b>11 cattle</b> in several groups are drooling and off feed.</p></div><ol class="exq" start="1"><li>Does an outbreak exist on this farm?<ul class="qb"><li>Give your answer</li><li>Explain why</li></ul></li><li>What is the expected number of clinical FMD cases in this herd in a normal month?<ul class="qb"><li>What is your expectation based on?</li></ul></li><li>Who must be informed?<ul class="qb"><li>Explain why</li></ul></li></ol></article>
+<article class="excard" data-ex="3"><div class="exhead"><span class="exn">STEP 03</span><h2>Verify the diagnosis</h2></div><ol class="exq" start="1"><li>Which clinical signs are consistent with FMD in cattle?</li><li>Which other diseases could look like this?<ul class="qb"><li>List your differential diagnoses</li></ul></li><li>Plan your samples.<ul class="qb"><li>Which samples?</li><li>From which animals?</li><li>How will you send them to the laboratory?</li></ul></li></ol><div class="update"><span class="when">Lab result · 10 September 2012</span><p>On 7 September, epithelium samples were taken from four affected animals in the isolation paddock and sent to the National FMD Laboratory, Embakasi. On 10 September, antigen ELISA confirmed <b>FMD virus serotype SAT2</b> in all four. The World Reference Laboratory (Pirbright, UK) later identified <b>SAT2 topotype IV</b>.</p></div></article>
+<article class="excard" data-ex="4"><div class="exhead"><span class="exn">STEP 04</span><h2>Define and identify cases</h2></div><ol class="exq" start="1"><li>What case definition was used in this paper?<ul class="qb"><li>Find it in the paper (Section 2.3)</li><li>Write it out</li><li>Identify its parts: animal, place, time, clinical criteria, lab criteria (if any)</li></ul></li></ol></article>
+<article class="excard" data-ex="5"><div class="exhead"><span class="exn">STEP 05</span><h2>Describe by time, place and animal</h2></div><div class="use"><b>How to use the LineList sheet</b><ul class="qb"><li>One row = one animal in one group (695 rows, 644 animals; 51 animals moved)</li><li>Cases = SUM of <b>FMD_case</b>; cattle-days = SUM of <b>Days_at_risk</b></li><li>IR = cases ÷ cattle-days × 100; 95% CI = IR × EXP(±1.96/SQRT(cases))</li><li>Attack rate = cases ÷ rows in the group × 100 (whole farm: ÷ 644 animals)</li><li>Tip: a pivot table with Group_ID as rows does most of the work</li></ul></div><ol class="exq" start="1"><li><b>Time.</b> Plot the epidemic curve from the LineList sheet.<ul class="qb"><li>Describe the shape</li><li>Which type of epidemic is it?</li></ul></li><li>Estimate the exposure period of the index case.<ul class="qb"><li>Index case onset: 31/08/2012</li><li>FMD incubation period: 2–14 days</li></ul></li><li><b>Animal.</b> Calculate incidence rates for each Group_ID and for the whole farm.<ul class="qb"><li>Number of animals (rows), cases and cattle-days at risk</li><li>Incidence rate per 100 cattle-days, with 95% CI</li><li>Attack rate (%)</li><li>Present one table, like the example below</li><li>Which groups had the highest and lowest rates?</li><li>Why do the attack rate and incidence rate rank some groups differently?</li></ul></li></ol><div class="table-wrap extable"><table>
+<tr><th>Group_ID</th><th class="num">Animals (rows)</th><th class="num">Cases</th><th class="num">Cattle-days</th><th class="num">IR per 100 cattle-days (95% CI)</th><th class="num">Attack rate (%)</th></tr>
+<tr style="background:var(--accent-soft)"><td><i>Example: Group X</i></td><td class="num">40</td><td class="num">20</td><td class="num">500</td><td class="num">4.00 (2.58–6.20)</td><td class="num">50.0</td></tr>
+<tr><td>Y1</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td></tr>
+<tr><td>Y2</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td></tr>
+<tr><td>… (one row per group, 18 groups)</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td></tr>
+<tr><td><b>All groups</b></td><td class="num">644 animals</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td></tr>
+</table></div>
+<p class="src" style="font-style:normal">Example row (made-up numbers): IR = 20 ÷ 500 × 100 = 4.00; 95% CI = 4.00 × EXP(±1.96/√20) = 2.58 to 6.20; attack rate = 20 ÷ 40 × 100 = 50.0%.</p><ol class="exq" start="4"><li><b>Place.</b> Look at Figures 1 and 3 from the paper (below).<ul class="qb"><li>From the map, what do you think is the reason FMD spread from the index case to other groups?</li></ul></li></ol><figure class="imgfig"><img src="figure1_map.jpg" alt="Overall map of the farm and locations of livestock groups on 31 August 2012"><figcaption class="src">Figure 1 from Lyons et al. (2015), Acta Tropica 143:103–111. Overall map of the farm and locations of livestock groups on the first day of the FMD outbreak (31 August 2012). The isolation paddock is shown cross-hatched. Reproduced for teaching.</figcaption></figure><div class="block" style="padding:14px 16px"><h4>What Figure 1 shows: the farm on 31 August 2012</h4><ul style="margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px"><li>The farm is about 1,600 ha. Only about a quarter is used for livestock. The white fields have no livestock.</li><li><b>Sheep and goats</b> (hatched, far north-west) graze a few kilometres from the cattle and never mixed with them. None showed signs of FMD.</li><li><b>Cattle</b> are kept in 18 groups, each in its own paddock, in the centre and east of the farm: <b>red</b> = youngstock groups, <b>green</b> = lactating cow groups, <b>blue</b> = dry cow groups.</li><li><b>Black lines</b> = farm roads. Groups were moved between paddocks along these roads.</li><li><b>×</b> = the single mobile milking parlour, next to the lactating groups. All lactating cows were milked here twice a day and fed at common troughs.</li><li><b>●</b> = the single dip. Every group walked to it once a week.</li><li><b>Cross-hatched</b> = the isolation paddock. <b>Brown</b> = houses and other buildings (about 150 people work on the farm). <b>Light blue</b> = rivers and streams.</li><li>The index case (group Y8) was in a paddock near the centre of the farm, close to the parlour and the dip.</li></ul></div><figure class="imgfig"><img src="figure3_map.jpg" alt="Map of the farm showing FMD onset dates by paddock and movements of groups after they became affected"><figcaption class="src">Figure 3 from Lyons et al. (2015), Acta Tropica 143:103–111. Dates and location of FMD onset, and movements of groups after they became affected. Reproduced for teaching.</figcaption></figure><div class="block" style="padding:14px 16px"><h4>How to read Figure 3</h4><ul style="margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px"><li><b>Colours</b> show the date of the first FMD case in the group grazing that paddock. <b>Cross-hatched</b> = 31/08/2012: the index group (Y8), shown in the isolation paddock it was moved into on 1 September. <b>Greens</b> = early (05/09 and 06/09). <b>Yellows and oranges</b> = later (07/09 to 12/09). <b>Reds</b> = latest (13/09 and 19/09). <b>White</b> = no cattle. <b>Thick black outline</b> = group Y3, which had no cases.</li><li><b>Arrows</b> show groups that were moved to another paddock after they became affected (plus the move of Y3, which had no cases). The line style gives the date of the move: solid = 07/09, dotted = 11/09, dash-dot = 19/09, dashed = 20/09.</li><li><b>×</b> = milking parlour location 1 (before 1 September). <b>⊗</b> = parlour location 2 (from 1 September, when it moved with the lactating groups).</li><li>Compare with Figure 1 to see where the groups, roads and dip were on 31 August, before the moves.</li></ul></div><div class="block" style="padding:14px 16px"><h4>What happened: the outbreak day by day</h4><div class="table-wrap"><table><tr><th style="white-space:nowrap">Date</th><th>Event</th></tr><tr><td>31/08</td><td>Index case: an 18-month-old heifer in youngstock group <b>Y8</b>, near the centre of the farm. The district vet is called.</td></tr><tr><td>01/09</td><td>Y8 is driven <b>along the farm road</b> to the isolation paddock in the west. Another youngstock group with no cases is mixed in with it, probably by mistake. The lactating groups and the parlour are moved east (parlour location 1 → 2). The <b>dry cows (D)</b> are moved into the paddock Y8 has just left.</td></tr><tr><td>05/09</td><td>First cases in the groups whose paddocks lie <b>beside the road</b> Y8 used: Y7, Y10, H and C (dark green on the map).</td></tr><tr><td>06/09</td><td>Cases in Y4, Y9, D, L2 and L5. Disease spreads around the first location of Y8, and a second focus appears in the south-west (L2, L5) and moves north. A freshly calved cow, already incubating, moved from the close-up group (C) into L5.</td></tr><tr><td>07/09</td><td>Cases in Y5, Y6 and L1. L1 also received an incubating fresh cow from C. Both foci keep moving towards the centre of the farm.</td></tr><tr><td style="white-space:nowrap">07/09–20/09</td><td>New cases are added to the isolation groups, and affected groups are moved again (arrows). Isolation stops on day 14 (13/09) because too many animals are sick.</td></tr><tr><td style="white-space:nowrap">11/09–19/09</td><td>The last groups are affected: L3 (11/09), L4 (12/09), Y2 (13/09) and the calves in individual hutches, Y1 (19/09).</td></tr><tr><td>Whole outbreak</td><td><b>Y3</b> has no cases. Until day 20 it had no infected neighbours (L3 was across a river and a wooded area).</td></tr></table></div><p class="src">Summarised from Lyons et al. (2015) §2.1, §3.2–3.3 and §4.</p></div><figure class="imgfig"><img src="figureS4_road.jpg" alt="Dairy cattle walking along a dirt farm road, with a wire fence and grazing fields beside the road" style="max-width:560px"><figcaption class="src">Supplementary Fig. S4 from Lyons et al. (2015), Acta Tropica 143:103–111. Photograph showing the movement of animals along the road, demonstrating the fencing used and proximity to the fields containing other livestock groups. Reproduced for teaching.</figcaption></figure></article>
+<article class="excard" data-ex="6"><div class="exhead"><span class="exn">STEP 06</span><h2>Develop hypotheses</h2></div><div class="use"><b>Clues from the investigation</b><ul class="qb"><li>The index group was moved along a farm road on 1 Sep</li><li>All lactating cows use one mobile parlour and common troughs</li><li>Animals older than about 18 months seemed most affected</li><li>Cows with more zebu breeding seemed less affected</li><li>The herd is vaccinated three times a year, last on 22/05/2012</li></ul></div><ol class="exq" start="1"><li>Open the Hypothesis_worksheet sheet.<ul class="qb"><li>Read hypotheses H1–H6</li><li>For each one, state which observation from Steps 1–5 suggests it</li></ul></li></ol></article>
+<article class="excard" data-ex="7"><div class="exhead"><span class="exn">STEP 07</span><h2>Evaluate hypotheses with the relative risk</h2></div><div class="use"><b>How to use the Animals sheet</b><ul class="qb"><li>One row = one animal; outcome = <b>FMD_case</b></li><li>Count each cell with COUNTIFS, e.g. exposed cases for 'over 18 months': <code>=COUNTIFS(Animals!G:G,"Yes",Animals!S:S,1)</code></li><li>RR = [a/(a+b)] ÷ [c/(c+d)]</li><li>SE = SQRT(1/a − 1/(a+b) + 1/c − 1/(c+d)); CI = EXP(LN(RR) ± 1.96 × SE)</li><li>Restrictions: H1 uses only the two age groups named; H5 excludes the index group; H6 excludes calves 'Not eligible (born after 22/05/2012)'</li></ul></div><ol class="exq" start="1"><li>Study design.<ul class="qb"><li>Why is this study a cohort?</li><li>Why is the relative risk the right measure?</li></ul></li><li>Test each hypothesis with the Animals sheet.<ul class="qb"><li>Do H1–H6 (the example row is done for you)</li><li>Build a 2×2 table for each</li><li>Calculate the RR and its 95% CI</li><li>Present your results in one table, like the example below</li></ul></li></ol><div class="table-wrap extable"><table>
+<tr><th>Hypothesis (exposed vs reference)</th><th class="num">Exposed cases (a)</th><th class="num">Exposed non‑cases (b)</th><th class="num">Reference cases (c)</th><th class="num">Reference non‑cases (d)</th><th class="num">Risk in exposed</th><th class="num">Risk in reference</th><th class="num">RR</th><th class="num">95% CI</th><th>Supported?</th></tr>
+<tr style="background:var(--accent-soft)"><td><i>Example</i>: over 18 months <span style="color:var(--muted)">vs</span> ≤18 months</td><td class="num">319</td><td class="num">85</td><td class="num">81</td><td class="num">159</td><td class="num">79.0%</td><td class="num">33.8%</td><td class="num">2.34</td><td class="num" style="white-space:nowrap">1.95–2.81</td><td>Yes</td></tr><tr><td><b>H1</b>: Under 6 months <span style="color:var(--muted)">vs</span> 2 to &lt;3 years</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr><tr><td><b>H2</b>: Parous <span style="color:var(--muted)">vs</span> Nulliparous</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr><tr><td><b>H3</b>: Any zebu <span style="color:var(--muted)">vs</span> 100% exotic</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr><tr><td><b>H4</b>: Parlour <span style="color:var(--muted)">vs</span> Not milked</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr><tr><td><b>H5</b>: Infected neighbour <span style="color:var(--muted)">vs</span> No</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr><tr><td><b>H6</b>: Vaccinated 22/05 <span style="color:var(--muted)">vs</span> Missed round</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr></table></div>
+<p class="src" style="font-style:normal">Example (from the Animals sheet): risk exposed = 319 ÷ 404 = 0.790; risk reference = 81 ÷ 240 = 0.338; RR = 0.790 ÷ 0.338 = 2.34. SE = √(1/319 − 1/404 + 1/81 − 1/240) = 0.094; 95% CI = EXP(LN(2.34) ± 1.96 × 0.094) = 1.95 to 2.81. CI above 1, so H1 is supported. Write it as: "Cattle over 18 months had 2.3 times the risk of clinical FMD of younger cattle (RR 2.34, 95% CI 1.95–2.81)."</p><ol class="exq" start="3"><li>Interpret your results.<ul class="qb"><li>Which hypotheses are supported?</li><li>Write one sentence for the most important result</li></ul></li></ol></article>
+<article class="excard" data-ex="8"><div class="exhead"><span class="exn">STEP 08</span><h2>Refine hypotheses and additional studies</h2></div><div class="update"><span class="when">More information</span><p>All animals present on each vaccination day were vaccinated, whatever their age, so <b>older animals have had more doses</b>. The manufacturer only sells vaccine with potency (PD50) above 6.0. The field virus was SAT2 topotype IV, the same topotype as the vaccine strain, but with about a <b>13% difference in nucleotide sequence</b>. Vaccine matching was not done.</p></div><ol class="exq" start="1"><li>Interpret your result for H6.<ul class="qb"><li>Did the 22 May vaccination protect against clinical FMD?</li></ul></li><li>Restriction in H6.<ul class="qb"><li>Why must calves born after 22/05/2012 be excluded?</li></ul></li><li>Risk increases with the number of lifetime vaccine doses.<ul class="qb"><li>Does the vaccine cause FMD?</li><li>Explain what is going on</li></ul></li><li>Vaccine failure.<ul class="qb"><li>What is the most likely reason?</li><li>Which additional studies would you recommend?</li></ul></li></ol></article>
+<article class="excard" data-ex="9"><div class="exhead"><span class="exn">STEP 09</span><h2>Implement control and prevention measures</h2></div><div class="update"><span class="when">What the farm actually did</span><p>Notified the district vet on 31 August. Isolated the index group on 1 September and moved the lactating groups and parlour away. Added new cases to the isolation groups, but <b>stopped isolation on day 14</b> because so many animals were sick. Assigned each stockman to a single group. Treated cases with oral sodium carbonate powder and some antibiotics. <b>No reactive vaccination.</b></p></div><ol class="exq" start="1"><li>Which of the farm's actions most likely increased the spread?</li><li>Choose your top three immediate control measures.<ul class="qb"><li>Give a reason for each</li><li>Link each reason to your findings</li></ul></li><li>Give two long-term recommendations.<ul class="qb"><li>To prevent the next outbreak, or limit its spread</li></ul></li></ol></article>
+<article class="excard" data-ex="10"><div class="exhead"><span class="exn">STEP 10</span><h2>Communicate findings</h2></div><ol class="exq" start="1"><li>Who needs to receive your findings?<ul class="qb"><li>List the audiences</li><li>Say what each audience needs to know</li></ul></li><li>Write three key messages for the farm's stock workers.</li></ol></article>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+/* ===================== CONTENT DATA ===================== */
+const STEPS10 = ["Prepare for fieldwork","Establish outbreak existence","Verify the diagnosis","Define and identify cases","Describe and orient data by time, place and animal","Develop hypotheses","Evaluate hypotheses epidemiologically","Refine hypotheses and carry out additional studies","Implement control and prevention measures","Communicate findings"];
+const REPORT7 = ["Title and author","Background: who, what, when, where","Objective of the investigation","Methods and findings","Samples collected and lab results","Control measures taken and prescribed","Recommended follow-up: control and surveillance"];
+const SEQ = {
+  order10:{items:STEPS10, ok:"Correct. Remember that the steps overlap in practice: control measures start as soon as you suspect FMD.", no:"Not quite. Hint: you must know what the disease is (Steps 2–4) before you can count and describe it (Step 5), and you test hypotheses (Step 7) after you develop them (Step 6)."},
+  report7:{items:REPORT7, ok:"Correct. This order follows the WOAH preliminary report outline.", no:"Not quite. The report moves from what happened (background), to what you did and found, to what should happen next."}
+};
+
+const MCQ = {
+ s1q1:{p:"You arrive at a large dairy farm with suspected FMD in one group. In which order should you visit the groups?",
+  o:[["Sick group first, so you see the problem while signs are fresh.","This is the most common mistake. You would then carry virus on your boots and clothes to every healthy group."],
+     ["Healthy groups first, sick group last, then disinfect and leave.","Correct. Always move from clean to dirty. This protects healthy groups from you."],
+     ["Any order, if you wear gloves.","Gloves alone do not stop virus on boots, clothes, equipment and the vehicle."],
+     ["Only the sick group; healthy groups are not important.","You need to examine healthy groups too, to find early cases and to know the population at risk."]],a:1},
+ s1q2:{p:"Which question belongs to the 'How?' of the 4 Ws and 1 H?",
+  o:[["Which species and age groups are affected?","That is 'What?'."],["How did the agent get onto this farm?","Correct. 'How?' asks about the route of introduction and how the outbreak behaved."],["When did clinical signs start?","That is 'When?'."],["Where are the other affected farms?","That is 'Where?'."]],a:1},
+ s2q1:{p:"Which farm shows evidence of an outbreak?",
+  o:[["Farm A","Correct. Mortality rose after 1995 and most later months stayed above the average. That is a true and lasting excess."],["Farm B","Farm B varies from month to month but has no strong or lasting rise. That is normal variation."],["Both farms","Farm B shows no lasting rise above its usual level."],["Neither farm","Farm A has a lasting rise above its usual level."]],a:0},
+ s2q2:{p:"A district usually reports 0–1 FMD villages each October. This October 6 villages report. A new officer also started a reporting campaign this month. What should you do?",
+  o:[["Ignore it. The rise is only due to the campaign.","A reporting campaign can increase reports (an artefact), but you cannot know until you check. Real outbreaks also happen during campaigns."],
+     ["Declare an outbreak at once without visiting.","You need to verify first: are the cases real, new and FMD-like?"],
+     ["Verify: visit, examine animals, check dates of onset, and compare with expected numbers.","Correct. Separate a true excess from a reporting artefact with objective data."],
+     ["Wait one more month to see if it continues.","FMD spreads fast. Waiting a month could allow wide spread."]],a:2},
+ s2q3:{p:"Why must you know the number of animals at risk, not only the number of cases?",
+  o:[["Because 10 sick cows means something very different in a herd of 20 than in a herd of 2,000.","Correct. Without the denominator you cannot compare frequency between groups or with the usual level."],["Because the lab needs it.","The lab does not need herd size to run its tests."],["It is only needed for the final report.","You need it right away to judge whether there is an excess."],["It is not needed if signs are typical.","Even typical signs need a denominator to measure how common they are."]],a:0},
+ s3q1:{p:"Which sample is best for confirming FMD virus and identifying the serotype?",
+  o:[["Serum for NSP-ELISA.","NSP-ELISA detects antibodies from infection, but does not identify the serotype of the circulating virus."],["Epithelium from fresh vesicles in glycerine buffer (plus vesicular fluid), kept cool.","Correct. Fresh epithelium contains the most virus, for antigen ELISA or RT-PCR and serotyping."],["Faeces from the pen floor.","Faeces are a poor sample for FMD diagnosis."],["No sample. Clinical signs are enough.","FMD must be confirmed by a laboratory, and the serotype guides vaccine choice."]],a:1},
+ s3q2:{p:"A herd vaccinated against serotype O has cattle with vesicles. The lab finds serotype A. What is the most likely explanation?",
+  o:[["The lab result must be wrong.","There is no reason to doubt the lab. Different serotypes cause the same clinical disease."],["There is no cross-protection between serotypes, so an O vaccine does not protect against A.","Correct. Serotypes are immunologically distinct."],["The vaccine caused the disease.","Inactivated FMD vaccines do not cause FMD."],["The animals were too old to be protected.","Age is not the issue here; the vaccine does not cover serotype A."]],a:1},
+ s4q1:{p:"Early in an outbreak, why use a broad (sensitive) working case definition?",
+  o:[["To find as many possible cases as quickly as possible, so control can start, accepting some false cases.","Correct. Later, with lab results, you make it more specific."],["Because broad definitions are always more accurate.","Broad definitions include more false cases; they are less specific."],["Because lab tests are never used in outbreaks.","Lab tests are used to confirm cases and refine the definition."],["To make the attack rate look smaller.","A broad definition usually makes the attack rate larger, not smaller."]],a:0},
+ s5q1:{p:"Look at the village sketch. Farm 1 had signs on 12 Oct; Farms 6, 5, 3 and 2 had signs on 18–21 Oct; Farm 4 has none. What does this pattern suggest?",
+  o:[["All farms were infected at the same time from one source.","Then onset dates would be close together. Farm 1 was 6–9 days earlier."],["Spread from Farm 1 to farms using the common grazing area, about one incubation period later. Farm 4 may not use the grazing area.","Correct. This is a hypothesis to check: ask which farms use the common grazing area."],["Farm 4 is the source.","Farm 4 has no clinical signs."],["The pattern tells us nothing.","Time plus place gives strong clues about the route of spread."]],a:1},
+ s6q1:{p:"Which of these is a testable hypothesis?",
+  o:[["Hygiene on the farms was poor.","Too vague. It does not name an exposure, a comparison group or a direction."],["FMD is a serious disease for farmers.","True, but not a hypothesis about this outbreak."],["Cattle using the common grazing area had a higher risk of FMD than cattle that did not (RR > 1).","Correct. It names the exposure, the comparison group and the expected direction."],["The virus came from somewhere outside the village.","Too vague to test. Name a specific source or route."]],a:2},
+ s6q2:{p:"H1: 'Cattle older than 18 months have a higher risk of FMD than younger cattle.' What is H0?",
+  o:[["Older cattle have a lower risk.","That is another direction, not the null hypothesis."],["The risk is the same in older and younger cattle (RR = 1).","Correct. H0 states no difference."],["Older cattle have twice the risk.","That is a specific effect size, not H0."],["Age causes FMD.","That is a causal statement, not H0."]],a:1},
+ s6h1:{p:"Farmers say cattle that share a water point with a sick herd get FMD more often. Which is the best H1?",
+  o:[["Water causes FMD.","Too broad, and it states a cause, not a comparison."],["Cattle that share a water point with an infected herd have a higher risk of FMD than cattle that do not (RR > 1).","Correct. Exposure, comparison group and direction are all stated."],["The risk of FMD is the same whether cattle share a water point or not.","That is H0, not H1."],["Some cattle drink from the water point.","This describes the farm, not a hypothesis."]],a:1},
+ s6h2:{p:"H1: 'Buffalo have a lower risk of FMD than cattle in this village.' Which H0 is correct?",
+  o:[["Buffalo have a higher risk than cattle.","That is the opposite direction, not the null."],["Buffalo cannot get FMD.","Untrue, and not a null hypothesis."],["The risk of FMD is the same in buffalo and cattle (RR = 1).","Correct. H0 always states no difference."],["Buffalo have half the risk of cattle (RR = 0.5).","That is a specific effect, not 'no difference'."]],a:2},
+ s6h3:{p:"Which pair of H1 and H0 is written correctly?",
+  o:[["H1: Lactating cows get FMD. H0: Dry cows get FMD.","These are two descriptions, not a hypothesis and its null."],["H1: Cows milked in the shared parlour have a higher risk than cows not milked there (RR > 1). H0: The risk is the same in both groups (RR = 1).","Correct."],["H1: The parlour is dirty. H0: The parlour is clean.","Neither names an outcome or a comparison of risk."],["H1: RR = 1. H0: RR > 1.","These are swapped. H0 is RR = 1."]],a:1},
+ s6h4:{p:"H1: 'Calves under 6 months have a lower risk of FMD than cattle aged 2–3 years.' What RR do you expect if H1 is true?",
+  o:[["RR > 1","That would mean higher risk in calves."],["RR < 1","Correct. Calves are the exposed group and are expected to have lower risk, so RR < 1."],["RR = 1","That is what H0 predicts."],["RR = 0","An RR of 0 would mean no calf ever got sick; H1 only says 'lower'."]],a:1},
+ s6h5:{p:"You test H0: RR = 1. Your result is RR 1.9 (95% CI 1.4–2.6). What do you do?",
+  o:[["Accept H0: there is no difference.","The CI does not include 1."],["Reject H0. The data support H1: the exposure is linked to higher risk.","Correct. The whole CI is above 1."],["Reject H1 because the RR is not 2.","H1 does not require an exact value."],["Nothing: CIs cannot test hypotheses.","If the 95% CI excludes 1, you can reject H0 at the 5% level."]],a:1},
+ s7q1:{p:"RR = 0.5 (95% CI 0.3–0.8) for 'vaccinated in the last month'. What does this mean?",
+  o:[["Vaccinated animals had half the risk, and the CI does not include 1, so chance is an unlikely explanation.","Correct. RR < 1 with a CI fully below 1 suggests a protective association."],["Vaccinated animals had twice the risk.","RR 0.5 means half the risk, not twice."],["No association, because the CI includes 1.","0.3–0.8 does not include 1."],["The vaccine is proven to cause protection.","An association supports, but does not prove, a cause."]],a:0},
+ s7q2:{p:"RR = 1.4 (95% CI 0.9–2.2) for 'shared water point'. What do you conclude?",
+  o:[["Shared water clearly increases risk.","The CI includes 1, so the evidence is not strong."],["The point estimate is above 1, but the CI includes 1: not statistically significant. Chance could explain it.","Correct. You might need more data, or the effect may be small or absent."],["Shared water is protective.","An RR above 1 is not protective."],["The study is wrong.","A non-significant result is still a valid result."]],a:1},
+ s7q3:{p:"In a whole-herd outbreak, why do we use the relative risk?",
+  o:[["Because every animal is known and followed, so we can calculate the risk in exposed and unexposed animals directly.","Correct. This is a cohort design."],["Because the RR is always larger than other measures.","Size is not the reason for the choice."],["Because we only sampled the sick animals.","If you only had sick animals plus some controls, you could not calculate risk."],["Because the lab requires it.","The choice depends on study design, not the lab."]],a:0},
+ s8q1:{p:"Index farm onset (day 0) is 5 March. FMD incubation is 2–14 days. What is the tracing window for the source?",
+  o:[["19 February to 3 March","Correct. Opens at day 0 − 14 days, closes at day 0 − 2 days."],["5 March to 19 March","That looks forward. The source window looks back."],["3 March to 5 March","This uses only the minimum incubation."],["19 February to 5 March","The window closes at day 0 − minimum (3 March), not day 0."]],a:0},
+ s8q2:{p:"In the parlour table, the RR is 2.0 for all animals but 1.0 among adults only. What is the best conclusion?",
+  o:[["The parlour doubles the risk.","That is the crude result. Within adults there is no difference."],["Age confounded the crude result: parlour use and older age go together. In these data the parlour shows no effect of its own.","Correct. Stratifying by age removed the apparent effect."],["Adults are protected by the parlour.","RR 1.0 means no difference."],["The data are wrong.","The data show a classic confounding pattern."]],a:1},
+ s9q1:{p:"Effective controls start on 21 October. Why do new FMD cases still appear for a few days?",
+  o:[["Controls never work against FMD.","Controls do work; their effect is delayed."],["Animals infected before the controls are still incubating and will show signs later.","Correct. Expect a fall about 1–4 days after effective controls."],["Because of the disinfectant.","Disinfectants do not cause cases."],["Because the case definition changed.","Nothing here says the definition changed."]],a:1},
+ s10q1:{p:"Which is the best way to report a result?",
+  o:[["Age causes FMD (p < 0.05).","Overstates cause and gives no effect size."],["Old cattle got FMD 319 times.","A count without a denominator or comparison means little."],["Cattle over 18 months had 2.3 times the risk of clinical FMD of younger cattle (RR 2.3, 95% CI 1.9–2.8).","Correct. It gives the comparison, the size of the effect and the uncertainty."],["The RR was 2.3, so the vaccine failed.","This mixes up two different findings."]],a:2},
+ s10q2:{p:"Which message is best for farmers in an affected village?",
+  o:[["FMD is caused by an Aphthovirus of the family Picornaviridae with seven serotypes.","Correct, but not useful for farmers. It gives no action."],["Report drooling or mouth and foot sores to the vet now. Keep your animals at home. Do not buy or sell sick animals.","Correct. Short, plain and action-based."],["Please comply with biosecurity regulations.","Too vague. Farmers need to know exactly what to do."],["Do not worry, FMD rarely kills adult cattle.","This discourages reporting and control."]],a:1},
+
+ ex2q1:{p:"In a normal month, how many clinical FMD cases would you expect in this herd?",
+  o:[["About 50, because FMD is endemic in Kenya.","Endemic in the country, yes, but this herd is vaccinated three times a year and had no recorded FMD since 2004."],["Close to zero: the herd is vaccinated about every 4 months and the last recorded outbreak was in 2004.","Correct. Expected ≈ 0, so even a few cases are a true excess."],["You cannot say anything without a lab result.","Expected numbers come from history and records, not from the lab."],["About 11.","11 is the observed number, not the expected number."]],a:1},
+ ex2q2:{p:"Is this an outbreak, and what should happen now?",
+  o:[["No. Vaccinated herds cannot get FMD.","Vaccinated herds can get FMD (strain mismatch, waning immunity and so on)."],["Yes. 11 cases against an expected ≈ 0. FMD is notifiable: report it, start control measures and take samples.","Correct. The farm notified the district veterinary officer on 31 August."],["Wait until more than 10% of the herd is affected.","Waiting lets the virus spread. Act on suspicion."],["Only if the lab confirms it.","Control must start before lab confirmation."]],a:1},
+ ex3q1:{p:"Which samples should you send to confirm FMD and find the serotype?",
+  o:[["Serum from 20 cows only.","Serum alone is not ideal for identifying the circulating serotype, especially in a vaccinated herd."],["Epithelium from fresh oral or foot lesions in glycerine buffer, with vesicular fluid if present, sent chilled.","Correct. The farm sent four epithelium samples."],["Faeces from the milking parlour floor.","Not a useful sample for FMD."],["No samples. The signs are typical.","FMD must be confirmed, and the serotype is essential in a vaccinated herd."]],a:1},
+ ex4q1:{p:"After 10 September, which type of case definition is the farm's definition?",
+  o:[["Confirmed: every case was lab-tested.","Only four animals were tested."],["Probable: typical clinical signs in an animal linked to a lab-confirmed outbreak on the same farm.","Correct. Before 10 September it served as a working (suspect) definition."],["It is not a case definition.","It sets clear clinical criteria, place and time. It is a case definition."],["Confirmed, because the farm manager recorded it.","Confirmation needs a lab result for that animal."]],a:1},
+ ex4q2:{p:"The definition needs drooling. Which group's risk is most likely to be underestimated?",
+  o:[["Lactating cows with a drop in milk yield.","Milk drop is easy to see in milking cows, and most also drool."],["Young calves, which may have mild signs and little drooling.","Correct. The paper found very low risk in young calves and discusses mild signs as one possible reason."],["Dry cows.","No particular reason to miss them."],["None: the definition is perfect.","Every definition has a trade-off."]],a:1},
+ ex5q1:{p:"What type of epidemic curve is this?",
+  o:[["Point source: one short exposure, one peak.","Cases continue for four weeks in several waves, much longer than one incubation period."],["Continuous common source: a plateau.","The curve has waves, not a flat plateau."],["Propagated: several waves about one incubation period apart (around 5–8 Sep, 13–19 Sep, 26–28 Sep).","Correct. The paper describes three successive generations after the index case."],["Intermittent common source.","An intermittent source is possible to consider, but the waves and animal-to-animal spread fit propagation."]],a:2},
+ ex5q2:{p:"L4 has a higher attack rate (89%) than in-calf heifers H (78%), but a lower incidence rate (5.5 vs 9.2 per 100 cattle-days). Why?",
+  o:[["A calculation error.","Both are correct; they measure different things."],["Cases in H happened faster after exposure, so each H animal added fewer cattle-days before becoming a case. IR measures speed; AR measures how many in the end.","Correct."],["Group H is larger.","H (55) and L4 (56) are almost the same size."],["The attack rate uses cattle-days.","The attack rate uses the number of animals; the incidence rate uses cattle-days."]],a:1},
+ ex5q3:{p:"Groups Y7, Y10, H and C, beside the farm road, had their first cases on 5 September. What does this suggest?",
+  o:[["They were infected from the sheep and goats.","Small ruminants were kilometres away and showed no signs."],["They were exposed when Y8 passed along the road on 1 September: a 4-day gap fits the FMD incubation period.","Correct. The paper concludes that moving the infected group along the road probably exposed these groups."],["They were infected through milk purchased from smallholders.","Purchased milk did not enter animal areas."],["The timing is too short to be linked.","4–5 days is a typical FMD incubation period."]],a:1},
+ ex8q1:{p:"For H6, RR = 0.98 (95% CI 0.85–1.14). What does this mean?",
+  o:[["The 22 May vaccination halved the risk.","An RR of 0.98 is almost exactly 1."],["No evidence that the 22 May vaccination protected against clinical FMD: RR ≈ 1 and the CI includes 1.","Correct. This matches the paper's conclusion of limited or no vaccine effectiveness."],["Vaccination doubled the risk.","RR 0.98 is not 2."],["The result is significant because RR is below 1.","The CI includes 1, so it is not significant."]],a:1},
+ ex8q2:{p:"Why must calves born after 22/05/2012 be excluded from H6?",
+  o:[["They could not receive that dose, and they are the youngest, lowest-risk animals. Counting them as 'not vaccinated' would make the unvaccinated group look healthier because of age.","Correct. This is restriction to remove an unfair comparison."],["Because calves cannot get FMD.","Calves can get FMD."],["To make the sample size bigger.","Excluding animals makes it smaller."],["Because their ear tags are missing.","All animals had ear tags."]],a:0},
+ ex8q3:{p:"Risk rises with lifetime vaccine doses (RR about 12 for 1–2 doses and 25 for 10+ doses, vs 0 doses). What is the best explanation?",
+  o:[["More vaccine doses cause FMD.","Inactivated vaccine does not cause FMD."],["Confounding by age: animals with more doses are older, and older animals had higher risk. Doses and age cannot be separated in these data.","Correct. The paper notes the strong link between doses and age."],["The vaccine works better in older animals.","That would lower risk in older animals, the opposite of what we see."],["Chance alone.","The CIs are far from 1."]],a:1},
+ ex8q4:{p:"For H5 (neighbouring infected paddock), RR = 1.42 (95% CI 1.20–1.69). What is the main limitation?",
+  o:[["None: the CI excludes 1, so it is proven.","A significant result can still be biased."],["It is a group-level exposure. Animals in the same group are not independent (clustering), so the real CI is wider than shown. The index group was excluded because it was the source.","Correct."],["The RR is too small to matter.","An RR of 1.4 can matter."],["Neighbouring paddocks cannot spread FMD.","Direct contact over fences and short-range spread are known routes."]],a:1},
+ ex9q1:{p:"Which of the farm's actions most likely increased the spread?",
+  o:[["Notifying the district veterinary officer.","Notification is essential and did not spread disease."],["Moving the infected group Y8 along the farm road past other groups, and moving the dry cows into the paddock Y8 had just left.","Correct. The paper links these movements to cases in roadside groups and dry cows a few days later."],["Assigning each stockman to one group.","This reduces spread by people."],["Treating cases with sodium carbonate.","This did not increase spread."]],a:1},
+
+ qz1:{p:"According to WOAH, what is an outbreak?",
+  o:[["One or more cases in an epidemiological unit.","Correct."],["More than 10 cases in a district.","There is no fixed number."],["Any disease in a vaccinated herd.","Not a definition of outbreak."],["Deaths in more than 5% of animals.","Mortality is not required."]],a:0},
+ qz2:{p:"Which step comes directly after 'Define and identify cases'?",
+  o:[["Develop hypotheses","That is Step 6."],["Describe and orient data by time, place and animal","Correct. Step 5 follows Step 4."],["Verify the diagnosis","That is Step 3, before case definition."],["Implement control measures","That is Step 9."]],a:1},
+ qz3:{p:"Which incubation period does the SEACFMD manual use for FMD tracing windows?",
+  o:[["1–3 days","Too short."],["2–14 days","Correct. Minimum 2 days, maximum 14 days."],["21–28 days","Too long; 28 days relates to the carrier state."],["6–12 months","That is roughly the duration of vaccine immunity."]],a:1},
+ qz4:{p:"A cohort analysis gives RR 0.73 (95% CI 0.59–0.92) for 'any zebu breeding'. What does it mean?",
+  o:[["Zebu-cross animals had about 27% lower risk, and the CI excludes 1.","Correct."],["Zebu-cross animals had 73% higher risk.","RR below 1 means lower risk."],["No difference because the RR is below 1.","No difference would be RR ≈ 1 with a CI including 1."],["Zebu breeding is proven to prevent FMD.","An association is not proof of cause."]],a:0},
+ qz5:{p:"An epidemic curve shows successive peaks about one incubation period apart. Which type is it?",
+  o:[["Point source","A point source gives one peak within one incubation period."],["Continuous common source","That gives a plateau."],["Propagated","Correct. Each generation infects the next."],["Intermittent common source","That gives irregular, jagged peaks without a regular spacing."]],a:2},
+ qz6:{p:"Many animals were born, moved or sold during an outbreak. Which measure should you use to compare groups?",
+  o:[["Attack rate using animals at the start","The number at the start does not reflect who was really at risk."],["Incidence rate using animal-time at risk","Correct. Each animal contributes only the time it was at risk in that group."],["Number of cases","Counts without a denominator cannot be compared."],["Case fatality rate","That measures deaths among cases, not the risk of disease."]],a:1},
+ qz7:{p:"Which sample is best to confirm FMD and identify the serotype?",
+  o:[["Epithelium from fresh vesicles","Correct."],["Faeces","Not suitable."],["Hair","Not suitable."],["Urine","Not suitable."]],a:0},
+ qz8:{p:"Parous cows have RR 1.6 compared with nulliparous animals, but the nulliparous group includes all youngstock. What is the most likely explanation?",
+  o:[["Calving causes FMD.","Unlikely; the pattern is explained by age."],["Confounding by age: parous animals are older, and age is linked to risk.","Correct."],["Selection of the wrong case definition.","The definition is the same for both groups."],["Chance.","The CI excluded 1, and there is a clear alternative explanation."]],a:1},
+ qz9:{p:"You compare cattle vaccinated on 22 May with cattle that missed that round. Which animals should you exclude?",
+  o:[["Animals born after 22 May","Correct. They could not have been vaccinated that day."],["All cases","You need cases in both groups to calculate risk."],["Animals over 5 years","No reason to exclude them."],["Animals in lactating groups","No reason to exclude them."]],a:0},
+ qz10:{p:"When can FMD movement controls be lifted, according to the field manual?",
+  o:[["As soon as the lab confirms FMD","That is when control should be strengthened."],["7 days after the first case","Far too early."],["30 days after clinical signs in the last infected premises have resolved","Correct."],["When the farmer requests it","Decisions are based on the disease situation."]],a:2}
+};
+
+const MULTI = {
+ s1pack:{p:"Pack for a suspected FMD visit. Select every item you should take.",
+  items:[["PPE: gloves, boots, protective suit, mask",1],["Disinfectant (e.g. 4% washing soda or 1–2% sodium hydroxide) and footbath kit",1],["Tubes with glycerine buffer for epithelium",1],["Plain blood tubes, new needles and syringes",1],["Cool box with sealed ice packs",1],["Outbreak investigation forms and notepad",1],["GPS device or phone, and maps",1],["Antibiotics to give every animal as prevention",0,"Not recommended. Use antibiotics only for real secondary bacterial infections."],["A trailer to bring sick animals to the clinic",0,"Moving sick animals spreads FMD. Examine them on the farm."]]},
+ s8vac:{p:"Which could explain clinical FMD in a well-vaccinated herd? Select all that apply.",
+  items:[["The field strain is antigenically different from the vaccine strain",1],["Vaccine was stored too warm (cold-chain failure)",1],["Immunity waned since the last dose",1],["Young calves missed rounds or had maternal antibodies blocking the vaccine",1],["The field serotype is not in the vaccine",1],["A matching vaccine was given two weeks before exposure",0,"A recent, matching vaccine usually protects against clinical disease."],["Sunlight killed the virus on the pasture",0,"This would reduce disease, not explain it. Sunlight has little effect on FMD virus anyway."]]},
+ ex1pack:{p:"Pack for this farm visit. Select every item you should take.",
+  items:[["PPE: boots, overalls, gloves, mask",1],["Disinfectant (e.g. sodium carbonate or sodium hydroxide) and footbath kit",1],["Glycerine buffer tubes for epithelium and vesicular fluid",1],["Plain blood tubes, new needles and syringes",1],["Cool box with sealed ice packs",1],["Outbreak investigation and sample submission forms",1],["Farm map, GPS, camera",1],["Plan to drive your vehicle into each paddock to save time",0,"Leave the vehicle outside the farm or in a clean area."],["Antibiotics for all 644 cattle as prevention",0,"Not recommended and does not prevent a viral disease."]]},
+ ex1rec:{p:"Which farm records will you ask for? Select all that are useful.",
+  items:[["Herd register: ear tag, birth date, sex, breed",1],["Group lists and paddock locations",1],["Animal movement records between groups (and births, deaths, sales)",1],["Vaccination records: dates and which animals",1],["Milk records",1],["Which workers handle which groups",1],["The farm's milk sale prices",0,"Useful later for economic impact, but not for the investigation now."],["Weather forecast for next month",0,"Not useful for describing this outbreak."]]},
+ ex3signs:{p:"Which signs reported on the farm are consistent with FMD in cattle? Select all.",
+  items:[["Hyperptyalism (heavy drooling)",1],["Oral lesions",1],["Interdigital lesions and lameness",1],["Sudden drop in milk yield",1],["Pyrexia",1],["Decreased feed intake",1],["Bloody diarrhoea",0,"Not a typical FMD sign; think of other diseases."],["Abortion storm with no other signs",0,"Not typical of FMD."]]}
+};
+
+const CLS = {
+ s3age:{p:"How many days old is each lesion?",choices:["Day 1","Day 2","Day 3","Day 4","Day 7"],
+  items:[["Raw red epithelium, clear edge, no fibrin","Day 2"],["Blanched epithelium and an intact fluid-filled vesicle","Day 1"],["Extensive scar tissue and healing; some fibrin","Day 7"],["Much fibrin; new epithelium growing at the edge","Day 4"],["Edge less sharp, less red; fibrin starting","Day 3"]]},
+ s4cls:{p:"Classify each animal.",choices:["Not a case","Working (suspect)","Probable","Confirmed"],
+  items:[["Cow on Farm 6 with drooling and foot lesions. Shares the common grazing with Farm 1, which is lab-confirmed. Not tested.","Probable","Signs plus an epidemiological link, no test."],
+         ["Buffalo on Farm 2 with drooling and tongue vesicles. Antigen ELISA positive.","Confirmed","Lab result for this animal."],
+         ["Cow on Farm 4 with a cut foot. No drooling, no mouth lesions.","Not a case","Does not meet the clinical criteria."],
+         ["Calf in Village X on 15 Oct with salivation and mouth lesions. No known link yet. Not tested.","Working (suspect)","Meets the clinical criteria only."],
+         ["Cow in Village X with salivation and mouth lesions on 15 August 2008.","Not a case","Outside the time period (from 1 Oct 2008). It may be a separate event."]]},
+ s5curve:{p:"Match each curve above to its type.",choices:["Point source","Intermittent common source","Continuous common source","Propagated"],
+  items:[["Curve A","Point source","Steep rise, one peak, slower fall, all within one incubation period."],["Curve B","Propagated","Peaks get taller and are about one incubation period apart."],["Curve C","Continuous common source","Rises fast, then stays on a plateau while exposure continues."],["Curve D","Intermittent common source","Irregular, jagged peaks as exposure stops and starts."]]},
+ s6lvl:{p:"Is each exposure animal-level or group-level?",choices:["Animal-level","Group-level"],
+  items:[["Age of the animal","Animal-level"],["Proportion of zebu breeding","Animal-level"],["Number of vaccine doses received","Animal-level"],["The group grazed next to an infected paddock","Group-level"],["The group was moved along the road","Group-level"]]},
+ s9cls:{p:"Is each measure immediate or long-term?",choices:["Immediate","Long-term"],
+  items:[["Stop animal movements in and out of the affected area","Immediate"],["Isolate sick animals and stop shared grazing","Immediate"],["Disinfect vehicles and equipment on leaving","Immediate"],["Emergency (ring) vaccination with a matching vaccine","Immediate"],["Update the district FMD control plan","Long-term"],["Review vaccine strain, schedule and cold chain","Long-term"],["Train farmers and village animal health workers in early reporting","Long-term"]]},
+ ex4cls:{p:"Using the farm's definition, is each animal a case?",choices:["Case","Not a case"],
+  items:[["Heifer in Y10: drooling, lame, interdigital lesion.","Case","Drooling + interdigital lesion."],["Cow in L2: fever and off feed, no drooling.","Not a case","No hyperptyalism, so it does not meet the definition, even though it could be FMD."],["Cow in L4: drooling and a sudden drop in milk yield.","Case","Drooling + decreased milk yield."],["Heifer in Y7: drooling only, eating normally, no lesions found.","Not a case","Needs at least one other sign."],["Calf in Y2: small erosion on the tongue, no drooling.","Not a case","Possibly infected, but missed by a definition that needs drooling."]]},
+ ex6match:{p:"Which hypothesis does each clue suggest?",choices:["H1 (calves vs 2–3 yr)","H2 (parous)","H3 (zebu)","H4 (milking parlour)","H5 (neighbouring paddock)","H6 (vaccinated 22 May)"],
+  items:[["The index group was moved along a farm road on 1 Sep; roadside groups got sick 4–5 days later.","H5 (neighbouring paddock)"],["All lactating cows use one mobile parlour and common troughs.","H4 (milking parlour)"],["Animals older than about 18 months seemed most affected; young calves rarely.","H1 (calves vs 2–3 yr)"],["Cows with more zebu breeding seemed less affected.","H3 (zebu)"],["The herd is vaccinated three times a year; the last round was about 3 months before the index case.","H6 (vaccinated 22 May)"],["Most sick adult animals had already calved at least once.","H2 (parous)"]]},
+ ex9cls:{p:"For this farm, is each measure immediate or long-term?",choices:["Immediate","Long-term"],
+  items:[["Move sick animals only by routes that pass no healthy groups; isolation paddock away from roads","Immediate"],["Milk affected cows last; clean and disinfect the parlour and troughs after them","Immediate"],["Dip infected groups last (or pause dipping) and disinfect the dip area","Immediate"],["Each stockman stays with one group; boots and clothes stay with that group","Immediate"],["Write a farm contingency plan with pre-chosen isolation paddocks, made with the farm vet","Long-term"],["Ask for vaccine matching of the field SAT2 strain and review strain and schedule with the manufacturer","Long-term"],["Record date, ID and clinical signs of every case, plus age, sex and doses","Long-term"]]}
+};
+
+const NUM = {
+ ex5a:{p:"Enter your counts from the epidemic curve.",fields:[
+   {k:"tot",label:"Total cases",ans:400,tol:0},
+   {k:"first",label:"Onset of first case",ans:"2012-08-31",type:"date",tol:0},
+   {k:"peakd",label:"Date with most new cases",ans:"2012-09-16",type:"date",tol:0},
+   {k:"peakn",label:"New cases on that date",ans:54,tol:0},
+   {k:"d6",label:"New cases on 06/09/2012",ans:35,tol:0}],
+  hint:"Recheck that you count only rows with FMD_case = 1, and that each case appears once (in the group where onset occurred).",
+  explain:"400 cases from 31/08 to 28/09/2012. The highest day was 16/09/2012 with 54 new cases. On 06/09/2012 there were 35."},
+ ex5exp:{p:"Index case exposure window",fields:[
+   {k:"open",label:"Earliest likely exposure",ans:"2012-08-17",type:"date",tol:1},
+   {k:"close",label:"Latest likely exposure",ans:"2012-08-29",type:"date",tol:1}],
+  hint:"Earliest = onset − maximum incubation (14 days). Latest = onset − minimum incubation (2 days).",
+  explain:"31/08 − 14 days = 17/08/2012; 31/08 − 2 days = 29/08/2012. Ask about everything that came onto the farm in this window: workers who keep their own livestock, visitors, vehicles. The paper suggests workers with their own livestock as the most likely route, as FMD was present in the area."},
+ ex5c:{p:"Enter your results (1 decimal place is enough).",fields:[
+   {k:"cd",label:"Total cattle-days (all groups)",ans:11748,tol:1},
+   {k:"irall",label:"Whole farm IR per 100 cattle-days",ans:3.40,tol:0.1},
+   {k:"arall",label:"Whole farm attack rate (%)",ans:62.1,tol:0.1},
+   {k:"iry8",label:"Y8 IR per 100 cattle-days",ans:5.92,tol:0.1},
+   {k:"ary8",label:"Y8 attack rate (%)",ans:72.3,tol:0.1},
+   {k:"irh",label:"H IR per 100 cattle-days",ans:9.21,tol:0.1},
+   {k:"arh",label:"H attack rate (%)",ans:78.2,tol:0.1},
+   {k:"irl4",label:"L4 IR per 100 cattle-days",ans:5.45,tol:0.1},
+   {k:"arl4",label:"L4 attack rate (%)",ans:89.3,tol:0.1},
+   {k:"iry1",label:"Y1 IR per 100 cattle-days",ans:0.064,tol:0.05},
+   {k:"ary1",label:"Y1 attack rate (%)",ans:1.4,tol:0.1}],
+  hint:"Check: cases = SUM of FMD_case; cattle-days = SUM of Days_at_risk for that group; IR = cases ÷ cattle-days × 100; AR = cases ÷ number of rows in the group × 100. For the whole farm AR, divide by 644 animals, not 695 rows.",
+  explain:"Whole farm: 400 ÷ 11,748 × 100 = 3.40 per 100 cattle-days; 400 ÷ 644 = 62.1%. Y8 34 cases, 574 cattle-days. H 43 cases, 467 cattle-days. L4 50 cases, 917 cattle-days. Y1 1 case, 1,569 cattle-days."}
+};
+
+const OPEN = {
+ ex1log:{p:"Write the log-book entry for this call. Use the 4 Ws and 1 H. Note what you know and what you still need to find out.",
+  model:"<ul><li><b>What:</b> cattle; one 18-month-old heifer in group Y8 with heavy drooling and off feed; suspect a vesicular disease (FMD) even though the herd is vaccinated. Sheep and goats on the farm too.</li><li><b>When:</b> first seen morning of 31/08/2012, reported the same day.</li><li><b>Where:</b> large commercial dairy, Rongai sub-county, Nakuru County; group Y8 paddock.</li><li><b>Why:</b> unknown. Ask about FMD in the area and when the herd was last vaccinated (22/05/2012).</li><li><b>How:</b> unknown. No animals bought, so ask about visitors, workers who keep their own livestock, vehicles, feed, shared parlour and dip.</li><li><b>Next:</b> report to the national veterinary authority; visit today with sampling kit; advise the farm to stop moving groups until you arrive.</li></ul>",
+  rubric:["Reporter, date and location recorded","Species, number affected and clinical signs","Suspected disease named (FMD) despite vaccination","Open questions on source/route listed","Next actions: notify, visit, samples, stop movements"]},
+ ex3dd:{p:"List the differential diagnoses you would consider, and say what makes FMD most likely here.",
+  model:"<ul><li>Vesicular stomatitis (clinically similar; only a lab can tell).</li><li>Bovine viral diarrhoea / mucosal disease, malignant catarrhal fever, bluetongue, IBR (mouth or nasal lesions).</li><li>Foot rot or trauma (feet only, not spreading fast between groups).</li><li>Chemical or plant irritation (no spread).</li></ul><p>FMD is most likely because of vesicular lesions in mouth and feet, drooling, milk drop, fast spread across groups, and FMD in the local area. Lab confirmation is still needed.</p>",
+  rubric:["At least two vesicular or mucosal differentials","A non-infectious or foot-only differential","Reasons why FMD is most likely (signs + fast spread)","States that lab confirmation is needed"]},
+ ex3why:{p:"The vaccine contained SAT2. List possible reasons why vaccinated cattle still got sick. (You will test these ideas in Steps 7–8.)",
+  model:"<ul><li>The field SAT2 strain is antigenically different from the vaccine strain (poor match).</li><li>Cold-chain failure reduced vaccine potency.</li><li>Immunity waned: the last dose was more than 3 months earlier.</li><li>No booster in the primary course for young animals.</li><li>Some animals missed the last round or were born after it.</li><li>Maternal antibodies blocked the response in young calves.</li></ul>",
+  rubric:["Strain mismatch","Cold chain or potency","Timing / waning immunity","Coverage (missed rounds, young animals)"]},
+ ex4conf:{p:"Write a confirmed-case definition for this outbreak (animal, place, time, clinical and lab criteria).",
+  model:"<p>\"A bovine animal on [farm], Rongai sub-county, Nakuru County, with onset between 31/08/2012 and 28/09/2012, with hyperptyalism plus at least one other sign (decreased milk yield, decreased feed intake, oral lesions, interdigital lesions or pyrexia), <b>and</b> FMD virus serotype SAT2 detected by antigen ELISA or RT-PCR in epithelium or vesicular fluid.\"</p>",
+  rubric:["Animal (species)","Place","Time period","Clinical criteria","Lab test and serotype"]},
+ ex6own:{p:"Write one more hypothesis (H7). Give H1, H0, the exposure variable, the exposed and reference groups, and the expected RR. If the data needed are not in the file, say what you would collect.",
+  model:"<p>Example: <b>H1</b> \"Cattle in groups whose stockman also handled an infected group have a higher risk than cattle in groups with their own stockman (RR &gt; 1).\" <b>H0</b> RR = 1. Exposure: shared stockman (Yes/No), reference = own stockman. Data needed: worker–group records for each day before 14 Sep.</p><p>Other examples: dipping on the same day as an infected group; mid-lactation vs early lactation; days since last vaccination (101 vs 222).</p>",
+  rubric:["H1 names exposure, comparison and direction","H0 states RR = 1","Exposed and reference groups defined","Data source or data to collect named"]},
+ ex8open:{p:"What is the most likely reason for the vaccine failure, and which additional studies would you recommend?",
+  model:"<ul><li><b>Most likely:</b> poor match between the field SAT2 strain and the vaccine strain (13% nucleotide difference; SAT2 is very diverse; no protection even after many doses).</li><li><b>Less likely:</b> cold-chain failure (many doses with no build-up of protection argues against repeated cold-chain problems); waning immunity after 3 months may add to it.</li><li><b>Studies:</b> vaccine matching (r1 value) of the field isolate; notify the vaccine manufacturer; independent field evaluation of vaccine effectiveness; NSP serosurvey if an NSP-purified vaccine is used; record clinical severity per animal; compare groups vaccinated at different times.</li></ul>",
+  rubric:["Names strain mismatch as most likely, with evidence","Discusses at least one alternative (cold chain, waning)","Recommends vaccine matching","Recommends at least one other study (serology, manufacturer, effectiveness study)"]},
+ ex9open:{p:"Choose your top 3 control measures for this farm now, and give a reason for each linked to your findings.",
+  model:"<ol><li><b>Stop group movements past healthy groups; isolate in a paddock away from roads</b> — roadside groups were infected 4–5 days after Y8 passed (Step 5c, H5).</li><li><b>Parlour and trough hygiene: milk affected cows last, disinfect after</b> — all lactating groups shared one parlour (H4), and incubating cows moved into L1 and L5.</li><li><b>Review vaccination with the vet and manufacturer: vaccine matching, strain choice, schedule</b> — vaccination showed no protection (H6, RR ≈ 1).</li></ol><p>Also good: one stockman per group, dip infected groups last, contingency plan.</p>",
+  rubric:["Three specific measures","Each linked to a finding from Steps 5–8","At least one immediate and one long-term measure"]},
+ ex10rep:{p:"Write a preliminary report (about one page). Use the 7-part outline from Step 10.",
+  model:"<p><b>Title:</b> Preliminary report: FMD (SAT2) outbreak on a vaccinated dairy farm, Rongai, Nakuru County, Aug–Sep 2012.</p><p><b>Background:</b> large dairy, 644 cattle in 18 groups, vaccinated every ~4 months (last 22/05/2012). Index case 31/08/2012 in Y8.</p><p><b>Objective:</b> describe the outbreak, find routes of spread and risk factors, guide control.</p><p><b>Findings:</b> 400/644 cattle affected (62.1%); 3.40 cases per 100 cattle-days; propagated curve with three waves; 17 of 18 groups affected. Spread after Y8 was moved along the road on 1 Sep. Higher risk in cattle over 18 months (RR 2.3, 95% CI 1.9–2.8), parlour users (RR 1.6, 1.4–1.8) and groups next to infected paddocks (RR 1.4, 1.2–1.7); lower risk with any zebu breeding (RR 0.73, 0.59–0.92); no protection from the last vaccination (RR 0.98, 0.85–1.14).</p><p><b>Samples:</b> 4 epithelium samples, antigen ELISA SAT2 (10/09); WRL SAT2 topotype IV.</p><p><b>Control:</b> isolation (stopped day 14), lactating groups moved, one stockman per group, supportive treatment; no reactive vaccination.</p><p><b>Recommendations:</b> movement and parlour biosecurity; contingency plan; vaccine matching and review with manufacturer; better case records.</p>",
+  rubric:["All 7 sections present","Numbers given with denominators (cases/animals, rates)","At least three RRs with 95% CI","Lab result with serotype","Recommendations linked to findings"]},
+ ex10msg:{p:"Write 3 key messages for the farm's stock workers. Plain language, one sentence each.",
+  model:"<ol><li>Tell the livestock manager at once if a cow drools, stops eating or goes lame.</li><li>Stay with your own group. Do not walk into other groups' paddocks, and change boots before you leave.</li><li>Never move animals along the road or into another paddock without the manager's permission.</li></ol>",
+  rubric:["Short and plain, no jargon","Each message is an action","Covers reporting and movement/biosecurity"]}
+};
+
+/* Kenya RR answer rows: a,b,c,d,RR,lo,hi, verdict, note */
+const RRROWS = [
+ {id:"eg",h:"Example: cattle over 18 months vs younger (Over_18_months)",ans:[319,85,81,159,2.3396,1.9459,2.8129],v:"Supported",note:"Older cattle had about 2.3 times the risk. The paper suggests milder signs in young animals may mean fewer transmissions or missed cases."},
+ {id:"H1",h:"H1: calves under 6 months vs cattle 2 to <3 years (Age_group)",ans:[4,74,93,27,0.0662,0.0254,0.1727],v:"Supported",note:"Young calves had much lower risk. Possible reasons: milder signs (cases missed) or less transmission."},
+ {id:"H2",h:"H2: parous vs nulliparous (Parous)",ans:[201,46,199,197,1.6194,1.4438,1.8162],v:"Supported",note:"Supported, but nulliparous animals include all youngstock, so this mostly reflects age (confounding)."},
+ {id:"H3",h:"H3: any zebu breeding vs 100% exotic (Any_zebu)",ans:[44,49,356,195,0.7323,0.5858,0.9154],v:"Supported",note:"RR below 1 and the CI excludes 1, as reported in the paper."},
+ {id:"H4",h:"H4: milked through the parlour vs not (Milking_parlour)",ans:[177,38,223,206,1.5838,1.4187,1.768],v:"Supported",note:"RR above 1, CI excludes 1. Only adult cows are milked, so age may explain part of this."},
+ {id:"H5",h:"H5: neighbouring infected paddock vs not, index group excluded (Neighbour_infected_paddock)",ans:[286,141,80,90,1.4233,1.1974,1.6918],v:"Supported",note:"RR above 1, CI excludes 1. Group-level exposure, so the CI is too narrow."},
+ {id:"H6",h:"H6: vaccinated 22/05/2012 vs missed the round, ineligible calves excluded (Vaccinated_22May2012)",ans:[339,155,60,26,0.9836,0.8454,1.1443],v:"Not supported",note:"RR about 1 and the CI includes 1: no evidence that vaccination protected against clinical FMD."}
+];
+
+const EPI = {start:"2012-08-31",n:[1,0,0,1,9,24,35,23,24,13,16,7,9,28,24,22,54,23,27,32,5,1,0,0,0,1,10,7,4,0,0]};
+const IRT = [
+ ["Y1","Youngstock 1",69,1,1569,0.064,0.009,0.45,1.4,"19/09"],["Y2","Youngstock 2",19,1,517,0.19,0.027,1.37,5.3,"13/09"],["Y3","Youngstock 3",9,0,242,0,null,null,0,"none"],
+ ["Y4","Youngstock 4",38,9,901,1.00,0.52,1.92,23.7,"06/09"],["Y5","Youngstock 5",6,6,55,10.91,4.90,24.28,100,"07/09"],["Y6","Youngstock 6",32,16,380,4.21,2.58,6.87,50.0,"07/09"],
+ ["Y7","Youngstock 7",27,10,407,2.46,1.32,4.57,37.0,"05/09"],["Y8","Youngstock 8 (index)",47,34,574,5.92,4.23,8.29,72.3,"31/08"],["Y9","Youngstock 9",50,28,947,2.96,2.04,4.28,56.0,"06/09"],
+ ["Y10","Youngstock 10",67,47,1147,4.10,3.08,5.45,70.1,"05/09"],["H","In-calf heifers",55,43,467,9.21,6.83,12.42,78.2,"05/09"],["D","Dry cows",29,15,421,3.56,2.15,5.91,51.7,"06/09"],
+ ["C","Close-up dry cows",32,14,379,3.69,2.19,6.24,43.8,"05/09"],["L1","Lactating 1",38,30,578,5.19,3.63,7.42,78.9,"07/09"],["L2","Lactating 2",30,20,592,3.38,2.18,5.24,66.7,"06/09"],
+ ["L3","Lactating 3",36,27,672,4.02,2.76,5.86,75.0,"11/09"],["L4","Lactating 4",56,50,917,5.45,4.13,7.19,89.3,"12/09"],["L5","Lactating 5",55,49,983,4.98,3.77,6.60,89.1,"06/09"],
+ ["All","All groups (644 animals, 695 rows)",695,400,11748,3.40,3.09,3.76,62.1,"31/08"]];
+
+/* ===================== ENGINE ===================== */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const KEY = "m3-outbreak-v1";
+let S = {att:{}, v:{}, w:{}, unlocked:1, quiz:{}, quizDone:false};
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
+function attempt(id){ S.att[id] = true; save(); refreshGates(); refreshProgress(); }
+const fmt = (x, d=2) => (x === null || x === undefined || !isFinite(x)) ? "–" : Number(x).toFixed(d);
+function shuffleSeeded(arr, seed){ const a = arr.slice(); let s = seed; for (let i=a.length-1;i>0;i--){ s = (s*9301+49297)%233280; const j = Math.floor(s/233280*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function hashStr(t){ let h=7; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 100000; return h; }
+const LET = "ABCDEFGH";
+const inExercise = el => !!el.closest("#v-exercise");
+
+/* ---------- MCQ ---------- */
+function renderMCQ(el){
+  const id = el.dataset.id, q = MCQ[id]; if(!q) return;
+  el.classList.add("q");
+  el.innerHTML = `<p class="prompt">${esc(q.p)}</p><div class="opts">${q.o.map((o,i)=>`<button type="button" class="opt" data-i="${i}"><span class="k">${LET[i]}</span><span>${esc(o[0])}</span></button>`).join("")}</div><div class="fbw" aria-live="polite"></div>`;
+  const pick = (i, silent) => {
+    $$(".opt", el).forEach(b => b.classList.remove("sel","right","wrong"));
+    const b = $(`.opt[data-i="${i}"]`, el); const ok = i === q.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) $(`.opt[data-i="${q.a}"]`, el).classList.add("right");
+    $(".fbw", el).innerHTML = `<div class="fb ${ok?"ok":"no"}"><p><b class="v">${ok?"Correct.":"Not quite."}</b> ${esc(q.o[i][1])}</p>${ok?"":`<p><b>Best answer: ${LET[q.a]}.</b> ${esc(q.o[q.a][1].replace(/^Correct\.\s*/,""))}</p>`}</div>`;
+    S.w[id] = {i}; if (!silent) attempt(id); else S.att[id] = true;
+  };
+  $$(".opt", el).forEach(b => b.addEventListener("click", () => pick(+b.dataset.i)));
+  if (S.w[id] && S.w[id].i !== undefined) pick(S.w[id].i, true);
+}
+
+/* ---------- MULTI (select all) ---------- */
+function renderMulti(el){
+  const id = el.dataset.id, q = MULTI[id]; if(!q) return;
+  el.classList.add("q");
+  const order = shuffleSeeded(q.items.map((_,i)=>i), hashStr(id));
+  el.innerHTML = `<p class="prompt">${esc(q.p)}</p><div class="chips">${order.map(i=>`<button type="button" class="chip" aria-pressed="false" data-i="${i}">${esc(q.items[i][0])}</button>`).join("")}</div><div class="row"><button class="btn small" type="button">Check</button></div><div class="fbw" aria-live="polite"></div>`;
+  const chips = $$(".chip", el);
+  chips.forEach(c => c.addEventListener("click", () => { if (el.dataset.locked) return; c.classList.toggle("on"); c.setAttribute("aria-pressed", c.classList.contains("on")); }));
+  const check = silent => {
+    let right=0, wrong=0, miss=0; const notes=[];
+    chips.forEach(c => { const it = q.items[+c.dataset.i], on = c.classList.contains("on");
+      c.classList.remove("right","wrong","miss");
+      if (on && it[1]) { c.classList.add("right"); right++; }
+      else if (on && !it[1]) { c.classList.add("wrong"); wrong++; if (it[2]) notes.push(`<li><b>${esc(it[0])}:</b> ${esc(it[2])}</li>`); }
+      else if (!on && it[1]) { c.classList.add("miss"); miss++; }
+      else if (!on && !it[1] && it[2]) {} });
+    const ok = !wrong && !miss;
+    const extra = q.items.filter(it=>!it[1] && it[2]).map(it=>`<li><b>${esc(it[0])}:</b> ${esc(it[2])}</li>`);
+    $(".fbw", el).innerHTML = `<div class="fb ${ok?"ok":"no"}"><p><b class="v">${ok?"All correct.":"Not quite."}</b> ${right} correct selected${miss?`, ${miss} missed (dashed green)`:""}${wrong?`, ${wrong} wrong (red)`:""}.</p>${ok? (extra.length?`<ul style="margin:0;padding-left:1.2em">${extra.join("")}</ul>`:"") : (notes.length?`<ul style="margin:0;padding-left:1.2em">${notes.join("")}</ul>`:"")}</div>`;
+    S.w[id] = {on: chips.filter(c=>c.classList.contains("on")).map(c=>+c.dataset.i)};
+    if (!silent) attempt(id); else S.att[id] = true;
+  };
+  $(".btn", el).addEventListener("click", () => check());
+  if (S.w[id] && S.w[id].on) { chips.forEach(c => { if (S.w[id].on.includes(+c.dataset.i)) c.classList.add("on"); }); check(true); }
+}
+
+/* ---------- CLASSIFY (select per item) ---------- */
+function renderCls(el){
+  const id = el.dataset.id, q = CLS[id]; if(!q) return;
+  el.classList.add("q");
+  el.innerHTML = `<p class="prompt">${esc(q.p)}</p><div class="classify">${q.items.map((it,i)=>`<div class="item"><span>${esc(it[0])}</span><select id="${id}_${i}" aria-label="${esc(it[0])}"><option value="">Choose…</option>${q.choices.map(c=>`<option>${esc(c)}</option>`).join("")}</select><div class="why2" hidden></div></div>`).join("")}</div><div class="row"><button class="btn small" type="button">Check</button></div><div class="fbw" aria-live="polite"></div>`;
+  const sels = $$("select", el);
+  const check = silent => {
+    let n=0;
+    sels.forEach((s,i) => { const it=q.items[i]; s.classList.remove("ok","no"); const w = s.parentElement.querySelector(".why2");
+      if (s.value === it[1]) { s.classList.add("ok"); n++; w.hidden = !it[2]; w.textContent = it[2]||""; }
+      else { s.classList.add("no"); w.hidden=false; w.textContent = `Answer: ${it[1]}.${it[2]?" "+it[2]:""}`; } });
+    const ok = n === sels.length;
+    $(".fbw", el).innerHTML = `<div class="fb ${ok?"ok":"no"}"><p><b class="v">${ok?"All correct.":`${n} of ${sels.length} correct.`}</b> ${ok?"":"See the notes under each item."}</p></div>`;
+    S.w[id] = {vals: sels.map(s=>s.value)};
+    if (!silent) attempt(id); else S.att[id] = true;
+  };
+  $(".btn", el).addEventListener("click", () => check());
+  if (S.w[id] && S.w[id].vals) { sels.forEach((s,i)=> s.value = S.w[id].vals[i]||""); check(true); }
+}
+
+/* ---------- SEQUENCE (tap in order) ---------- */
+function renderSeq(el){
+  const id = el.dataset.id, q = SEQ[id]; if(!q) return;
+  const n = q.items.length; let placed = (S.w[id] && S.w[id].placed) || [];
+  const order = shuffleSeeded(q.items.map((_,i)=>i), hashStr(id)+3);
+  el.innerHTML = `<div class="two"><div><p style="font-size:.85rem;color:var(--muted);margin-bottom:6px">Tap to place</p><div class="chips pool-s"></div></div><div><p style="font-size:.85rem;color:var(--muted);margin-bottom:6px">Your order</p><div class="seq"></div></div></div><div class="row"><button class="btn small chk" type="button">Check order</button><button class="btn small ghost rst" type="button">Reset</button></div><div class="fbw" aria-live="polite"></div>`;
+  const draw = () => {
+    $(".pool-s", el).innerHTML = order.filter(i=>!placed.includes(i)).map(i=>`<button type="button" class="chip" data-i="${i}">${esc(q.items[i])}</button>`).join("") || `<span style="color:var(--muted);font-size:.9rem">All placed.</span>`;
+    $(".seq", el).innerHTML = Array.from({length:n},(_,k)=> placed[k]!==undefined ? `<button type="button" class="slot filled" data-k="${k}" style="text-align:left;cursor:pointer">${esc(q.items[placed[k]])}</button>` : `<div class="slot"></div>`).join("");
+    $$(".pool-s .chip", el).forEach(c => c.addEventListener("click", () => { placed.push(+c.dataset.i); draw(); }));
+    $$(".seq .slot.filled", el).forEach(s => s.addEventListener("click", () => { placed.splice(+s.dataset.k,1); draw(); }));
+  };
+  const check = silent => {
+    if (placed.length < n && !silent) { $(".fbw", el).innerHTML = `<div class="fb info"><p>Place all ${n} items first.</p></div>`; return; }
+    let r = 0; $$(".seq .slot", el).forEach((s,k) => { const ok = placed[k] === k; s.classList.add(ok?"right":"wrong"); if (ok) r++; });
+    const ok = r === n;
+    $(".fbw", el).innerHTML = `<div class="fb ${ok?"ok":"no"}"><p><b class="v">${ok?"Correct.":`${r} of ${n} in the right place.`}</b> ${esc(ok?q.ok:q.no)}</p>${ok?"":`<details><summary>Show the correct order</summary><ol style="margin:6px 0 0;padding-left:1.4em">${q.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ol></details>`}</div>`;
+    S.w[id] = {placed: placed.slice()}; if (!silent) attempt(id); else S.att[id] = true;
+  };
+  $(".chk", el).addEventListener("click", () => check());
+  $(".rst", el).addEventListener("click", () => { placed = []; $(".fbw", el).innerHTML=""; draw(); });
+  draw(); if (placed.length === n) check(true);
+}
+
+/* ---------- NUMERIC CHECK ---------- */
+function dayDiff(a,b){ const A=new Date(a+"T00:00:00Z"), B=new Date(b+"T00:00:00Z"); return Math.round((A-B)/864e5); }
+function renderNum(el){
+  const id = el.dataset.id, q = NUM[id]; if(!q) return;
+  el.classList.add("q");
+  el.innerHTML = `<p class="prompt">${esc(q.p)}</p><div class="grid-inputs">${q.fields.map(f=>`<div class="field"><label for="${id}_${f.k}">${esc(f.label)}</label><input id="${id}_${f.k}" type="${f.type==="date"?"date":"number"}" ${f.type==="date"?"":'step="any"'}></div>`).join("")}</div><div class="row"><button class="btn small chk" type="button">Check</button><button class="btn small ghost show" type="button" hidden>Show answer</button></div><div class="fbw" aria-live="polite"></div>`;
+  const check = silent => {
+    let n=0;
+    q.fields.forEach(f => { const inp = $(`#${id}_${f.k}`); inp.classList.remove("ok","no"); const v = inp.value;
+      let ok = false;
+      if (v !== "") { ok = f.type==="date" ? Math.abs(dayDiff(v, f.ans)) <= f.tol : Math.abs(parseFloat(v) - f.ans) <= f.tol + 1e-9; }
+      inp.classList.add(ok?"ok":"no"); if (ok) n++; });
+    const ok = n === q.fields.length;
+    $(".fbw", el).innerHTML = `<div class="fb ${ok?"ok":"no"}"><p><b class="v">${ok?"All correct.":`${n} of ${q.fields.length} correct.`}</b> ${ok?esc(q.explain):esc(q.hint)}</p></div>`;
+    $(".show", el).hidden = ok;
+    S.w[id] = {checked:true}; if (!silent) attempt(id); else S.att[id] = true;
+    $$(`.reveal[data-after="${id}"]`).forEach(r => r.hidden = false);
+  };
+  $(".chk", el).addEventListener("click", () => check());
+  $(".show", el).addEventListener("click", () => {
+    $(".fbw", el).insertAdjacentHTML("beforeend", `<div class="fb info"><p><b>Answer:</b> ${q.fields.map(f=>`${esc(f.label)} = <b>${f.type==="date"? f.ans.split("-").reverse().join("/") : f.ans}</b>`).join("; ")}.</p><p>${esc(q.explain)}</p></div>`);
+    $(".show", el).hidden = true; });
+  if (S.w[id] && S.w[id].checked) setTimeout(() => check(true), 0);
+}
+
+/* ---------- OPEN TEXT ---------- */
+function renderOpen(el){
+  const id = el.dataset.id, q = OPEN[id]; if(!q) return;
+  el.classList.add("q");
+  el.innerHTML = `<label class="prompt" for="${id}_t">${esc(q.p)}</label><textarea id="${id}_t" placeholder="Type your answer here…"></textarea><div class="row"><button class="btn small" type="button">Save and compare with a model answer</button><span class="msg" style="font-size:.88rem;color:var(--muted)"></span></div><div class="mw" hidden><div class="model"><b>Model answer</b>${q.model}</div><div class="rubric" style="margin-top:8px"><b style="font-size:.9rem">Self-check: tick what your answer includes</b>${q.rubric.map((r,i)=>`<label><input type="checkbox" id="${id}_r${i}"> ${esc(r)}</label>`).join("")}</div></div>`;
+  const ta = $("textarea", el);
+  const show = silent => {
+    if (!ta.value.trim() && !silent) { $(".msg", el).textContent = "Write something first."; return; }
+    $(".msg", el).textContent = "Saved."; $(".mw", el).hidden = false;
+    S.w[id] = {done:true}; if (!silent) attempt(id); else S.att[id] = true;
+  };
+  $(".btn", el).addEventListener("click", () => show());
+  if (S.w[id] && S.w[id].done) setTimeout(() => show(true), 0);
+}
+
+/* ---------- Persist plain inputs ---------- */
+function bindPersist(){
+  $$("input[id], textarea[id], select[id]").forEach(inp => {
+    if (S.v[inp.id] !== undefined) { if (inp.type === "checkbox") inp.checked = S.v[inp.id]; else inp.value = S.v[inp.id]; }
+    const h = () => { S.v[inp.id] = inp.type === "checkbox" ? inp.checked : inp.value; save(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+}
+
+/* ---------- Views & progress ---------- */
+const VIEWS = ["intro","s1","s2","s3","s4","s5","s6","s7","s8","s9","s10","exercise"];
+function widgetIds(view){ return $$(`#v-${view} [data-id]`).filter(e => !e.closest(".excard")).map(e => e.dataset.id).concat(view==="s5"?["adw"]:[]).concat(view==="s7"?["tt"]:[]); }
+function viewDone(v){
+  if (v === "exercise") return !!S.att.exvisit;
+  const ids = widgetIds(v); return ids.length > 0 && ids.every(i => S.att[i]);
+}
+function refreshProgress(){
+  let d = 0; VIEWS.forEach(v => { const ok = viewDone(v); if (ok) d++; const a = $(`.rail a[data-v="${v}"]`); if (a) a.classList.toggle("done", ok); });
+  $("#progFill").style.width = (d/VIEWS.length*100)+"%"; $("#progTxt").textContent = `${d}/${VIEWS.length}`;
+}
+function showView(){
+  let v = (location.hash || "#intro").slice(1); if (!VIEWS.includes(v)) v = "intro";
+  $$(".view").forEach(s => s.hidden = s.dataset.view !== v);
+  $$(".rail a").forEach(a => { if (a.dataset.v === v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  $("#rail").classList.remove("open"); $("#menuBtn").setAttribute("aria-expanded","false");
+  window.scrollTo(0,0);
+  if (v === "exercise") attempt("exvisit");
+}
+$("#menuBtn").addEventListener("click", () => { const o = $("#rail").classList.toggle("open"); $("#menuBtn").setAttribute("aria-expanded", o); });
+window.addEventListener("hashchange", showView);
+
+function refreshGates(){}
+
+/* ===================== CUSTOM WIDGETS & CHARTS ===================== */
+const SVGNS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs, parent){ const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function txt(parent, x, y, s, cls, anchor){ const t = svgEl("text", {x, y, class: cls||"", "text-anchor": anchor||"start"}, parent); t.textContent = s; return t; }
+const tip = $("#tip");
+function showTip(ev, html){ tip.innerHTML = html; tip.style.opacity = 1; const x = Math.min(ev.clientX + 12, window.innerWidth - 180); tip.style.left = x+"px"; tip.style.top = (ev.clientY - 36)+"px"; }
+function hideTip(){ tip.style.opacity = 0; }
+function rnd(seed){ let s = seed; return () => { s = (s*16807) % 2147483647; return (s-1)/2147483646; }; }
+
+/* Preweaning mortality line charts (illustrative) */
+function drawPW(id, series, avg){
+  const svg = $("#"+id); if (!svg) return; svg.innerHTML = "";
+  const W=300,H=150,L=30,R=8,T=10,B=24, max=25;
+  const x = i => L + i*(W-L-R)/(series.length-1), y = v => T + (H-T-B)*(1 - v/max);
+  [0,5,10,15,20,25].forEach(v => { svgEl("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),class:"gr"},svg); txt(svg, L-4, y(v)+4, v, "", "end"); });
+  ["1993","1994","1995","1996","1997"].forEach((yr,k) => txt(svg, x(k*12+6), H-6, yr, "", "middle"));
+  svgEl("line",{x1:L,x2:W-R,y1:y(avg),y2:y(avg),class:"ax","stroke-dasharray":"4 3",style:"stroke:var(--muted)"},svg);
+  svgEl("path",{d: series.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)).join(""), style:"fill:none;stroke:var(--bar);stroke-width:2"},svg);
+  txt(svg, L+4, y(avg)-4, "average", "lbl");
+}
+(function(){
+  const r1 = rnd(11), r2 = rnd(29);
+  const a = Array.from({length:60},(_,i)=> (i<30? 8 : 14) + (r1()-0.5)*6 );
+  const b = Array.from({length:60},()=> 10 + (r2()-0.5)*7 );
+  drawPW("pwA", a, 11); drawPW("pwB", b, 10);
+})();
+
+/* Mini epidemic curve types */
+(function(){
+  const box = $("#curveTypes"); if (!box) return;
+  const sets = {A:[0,1,4,9,13,10,7,4,2,1,0,0,0,0,0,0,0,0], B:[1,0,0,0,2,3,1,0,0,4,7,4,1,0,7,11,8,3], C:[0,3,7,9,8,9,8,9,8,9,8,8,9,8,7,8,9,8], D:[0,5,8,3,0,0,6,9,3,0,1,5,7,2,0,0,4,1]};
+  Object.entries(sets).forEach(([k,arr]) => {
+    const fig = document.createElement("figure");
+    fig.innerHTML = `<svg class="chart" viewBox="0 0 220 110" role="img" aria-label="Epidemic curve ${k}"></svg><figcaption><b>Curve ${k}</b></figcaption>`;
+    box.appendChild(fig);
+    const svg = $("svg", fig), W=220,H=110,L=6,B=16,T=6, bw=(W-2*L)/arr.length, mx=14;
+    svgEl("line",{x1:L,x2:W-L,y1:H-B,y2:H-B,class:"ax"},svg);
+    arr.forEach((v,i)=>{ if(!v) return; const h=(H-B-T)*v/mx; svgEl("rect",{x:L+i*bw+0.5,y:H-B-h,width:bw-1,height:h,rx:1.5,class:"bar"},svg); });
+    txt(svg, L, H-3, "time →");
+  });
+})();
+
+/* Attack rate calculator */
+function arCalc(){
+  const c = +$("#arC").value, n = +$("#arN").value;
+  if (!(n>0) || c<0 || c>n) { $("#arOut").textContent = "Enter cases (0 or more) and animals at risk (at least as many as cases)."; return; }
+  const p = c/n, se = Math.sqrt(p*(1-p)/n), lo = Math.max(0,p-1.96*se), hi = Math.min(1,p+1.96*se);
+  $("#arOut").textContent = `p  = ${c} ÷ ${n} = ${p.toFixed(3)}  →  ${(p*100).toFixed(1)} per 100 animals\nSE = √(${p.toFixed(3)} × ${(1-p).toFixed(3)} ÷ ${n}) = ${se.toFixed(4)}\n95% CI = ${p.toFixed(3)} ± 1.96 × ${se.toFixed(4)} = ${(lo*100).toFixed(1)} to ${(hi*100).toFixed(1)} per 100`;
+}
+$("#arGo").addEventListener("click", arCalc); arCalc();
+
+/* Animal-days timeline */
+(function(){
+  const svg = $("#adSvg"); if (!svg) return;
+  const W=640,H=230,L=150,R=20,T=24,rowH=36, days=10, x = d => L + d*(W-L-R)/days;
+  for (let d=0; d<=days; d++){ svgEl("line",{x1:x(d),x2:x(d),y1:T-6,y2:T+5*rowH-6,class:"gr"},svg); txt(svg, x(d), T-10, d, "", "middle"); }
+  txt(svg, L-10, T-10, "Day", "", "end");
+  const rows = [["Cow A","in all 10 days, no case",0,10,null],["Cow B","case on day 4",0,4,"case"],["Cow C","moved out on day 6",0,6,"out"],["Cow D","moved in on day 3, no case",3,10,null],["Cow E","case on day 8",0,8,"case"]];
+  rows.forEach((r,i) => { const y = T + i*rowH + 6;
+    txt(svg, 8, y+12, r[0], "strong"); txt(svg, 8, y+26, r[1], "");
+    svgEl("rect",{x:x(r[2]),y:y,width:x(r[3])-x(r[2]),height:14,rx:4,style:"fill:var(--accent-soft);stroke:var(--accent)"},svg);
+    if (r[4]==="case") svgEl("circle",{cx:x(r[3]),cy:y+7,r:6,style:"fill:var(--alert)"},svg);
+    if (r[4]==="out") txt(svg, x(r[3])+8, y+12, "→ out", "lbl");
+  });
+  txt(svg, L, H-8, "● = becomes a case (stops adding days)", "lbl");
+})();
+$("#adGo").addEventListener("click", () => {
+  const d = parseFloat($("#adDays").value), ir = parseFloat($("#adIR").value);
+  const okD = d === 35, okI = Math.abs(ir - 5.71) <= 0.06;
+  $("#adDays").className = okD ? "ok":"no"; $("#adIR").className = okI ? "ok":"no";
+  $("#adFb").innerHTML = `<div class="fb ${okD&&okI?"ok":"no"}"><p><b class="v">${okD&&okI?"Correct.":"Not quite."}</b> A 10 + B 4 + C 6 + D 7 (days 3–10) + E 8 = <b>35 animal-days</b>. Two cases, so IR = 2 ÷ 35 × 100 = <b>5.71 per 100 animal-days</b>. The attack rate (2 of 5 = 40%) ignores that C left early and D arrived late.</p></div>`;
+  attempt("adw");
+});
+
+/* Exposure period worked example */
+(function(){
+  const svg = $("#expSvg"); if (!svg) return;
+  const days = [], n = []; const cnt = {10:3,11:12,12:22,13:18,14:12,15:8,16:5,17:3,18:2,19:1,20:1};
+  for (let d=4; d<=22; d++){ days.push(d); n.push(cnt[d]||0); }
+  const W=680,H=300,L=36,R=10,T=104,B=40, bw=(W-L-R)/days.length, mx=25;
+  const y = v => T + (H-T-B)*(1-v/mx), xc = d => L + (days.indexOf(d)+0.5)*bw;
+  const defs = svgEl("defs",{},svg), mk = svgEl("marker",{id:"ahE",viewBox:"0 0 10 10",refX:9,refY:5,markerWidth:7,markerHeight:7,orient:"auto"},defs); svgEl("path",{d:"M0,0L10,5L0,10z",class:"d-arrow"},mk);
+  svgEl("rect",{x:xc(6)-bw/2,y:T-8,width:xc(8)-xc(6)+bw,height:H-B-T+8,class:"d-win-p"},svg);
+  [0,5,10,15,20,25].forEach(v => { svgEl("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),class:v?"gr":"ax"},svg); txt(svg, L-6, y(v)+4, v, "", "end"); });
+  n.forEach((v,i) => { const x0 = L+i*bw; if (v) svgEl("rect",{x:x0+0.5,y:y(v),width:bw-1,height:y(0)-y(v),rx:2,class:"bar"},svg); if (i%2===0) txt(svg, x0+bw/2, H-B+16, days[i]+" Mar", "", "middle"); });
+  txt(svg, xc(6)-bw/2+4, T+10, "most likely", "strong"); txt(svg, xc(6)-bw/2+4, T+24, "exposure", "strong"); txt(svg, xc(6)-bw/2+4, T+38, "6–8 Mar", "strong");
+  const arrow = (from,to,yy,label,anchorEnd) => {
+    svgEl("line",{x1:xc(from),x2:xc(from),y1:yy,y2:y(n[days.indexOf(from)])-2,style:"stroke:var(--alert);stroke-dasharray:3 3"},svg);
+    svgEl("path",{d:`M${xc(from)} ${yy} H${xc(to)+4}`,style:"stroke:var(--ink-2);stroke-width:1.5;fill:none","marker-end":"url(#ahE)"},svg);
+    if (anchorEnd) txt(svg, xc(from), yy-6, label, "lbl", "end"); else txt(svg, xc(from)+8, yy+4, label, "lbl", "start");
+  };
+  arrow(20,6,26,"last case 20 Mar − 14 days (maximum) = 6 Mar", true);
+  arrow(12,8,56,"peak 12 Mar − 4 days (average) = 8 Mar");
+  arrow(10,8,82,"first case 10 Mar − 2 days (minimum) = 8 Mar");
+  txt(svg, L, H-6, "Date of onset", "lbl");
+})();
+
+/* 2x2 from counts */
+(function(){
+  const host = $("#tt2x2"); if (!host) return;
+  const cows = [["C01",1,1],["C02",0,0],["C03",1,0],["C04",0,1],["C05",1,1],["C06",0,0],["C07",1,1],["C08",0,0],["C09",1,0],["C10",0,1],["C11",1,1],["C12",0,0]];
+  host.innerHTML = `<div class="table-wrap"><table style="max-width:520px"><tr><th>Animal</th><th>Drank from shared trough</th><th>Became an FMD case</th></tr>${cows.map(c=>`<tr><td class="mono">${c[0]}</td><td>${c[1]?"Yes":"No"}</td><td>${c[2]?"Yes":"No"}</td></tr>`).join("")}</table></div>
+  <div class="table-wrap" style="margin-top:12px"><table style="max-width:520px"><tr><th></th><th>FMD case</th><th>No FMD</th></tr>
+  <tr><th>Trough: yes</th><td><input type="number" id="ttA" min="0" aria-label="a"></td><td><input type="number" id="ttB" min="0" aria-label="b"></td></tr>
+  <tr><th>Trough: no</th><td><input type="number" id="ttC" min="0" aria-label="c"></td><td><input type="number" id="ttD" min="0" aria-label="d"></td></tr></table></div>
+  <div class="row" style="margin-top:8px"><div class="field"><label for="ttRR">RR</label><input type="number" step="any" id="ttRR"></div><button class="btn small" id="ttChk" type="button">Check</button></div><div id="ttFb" aria-live="polite"></div>`;
+  $("#ttChk").addEventListener("click", () => {
+    const want = {ttA:4,ttB:2,ttC:2,ttD:4}; let n=0;
+    Object.entries(want).forEach(([k,v]) => { const el=$("#"+k), ok = +el.value===v && el.value!==""; el.className = ok?"ok":"no"; if(ok) n++; });
+    const okR = Math.abs(parseFloat($("#ttRR").value)-2) <= 0.02; $("#ttRR").className = okR?"ok":"no";
+    const ok = n===4 && okR;
+    $("#ttFb").innerHTML = `<div class="fb ${ok?"ok":"no"}"><p><b class="v">${ok?"Correct.":"Not quite."}</b> ${ok?"":"Rows = exposure (trough), columns = disease (FMD). "}a = 4 (C01, C05, C07, C11), b = 2 (C03, C09), c = 2 (C04, C10), d = 4 (C02, C06, C08, C12). Risk exposed = 4/6 = 0.67; risk unexposed = 2/6 = 0.33. <b>RR = 2.0</b>. With only 12 animals the 95% CI is wide (about 0.6 to 7.1), so this small study cannot rule out chance.</p></div>`;
+    attempt("tt");
+  });
+})();
+
+/* RR calculator */
+function rrCompute(a,b,c,d){
+  const n1=a+b, n0=c+d; if (n1<=0||n0<=0) return null;
+  const r1=a/n1, r0=c/n0; if (r0===0) return {r1,r0,rr:Infinity};
+  const rr=r1/r0; let se=null, lo=null, hi=null;
+  if (a>0 && c>0){ se=Math.sqrt(1/a-1/n1+1/c-1/n0); lo=Math.exp(Math.log(rr)-1.96*se); hi=Math.exp(Math.log(rr)+1.96*se); }
+  return {r1,r0,rr,se,lo,hi,n1,n0};
+}
+function rrText(a,b,c,d){
+  const R = rrCompute(a,b,c,d); if (!R) return "Enter four counts.";
+  if (!isFinite(R.rr)) return "Risk in the unexposed group is 0, so the RR cannot be calculated.";
+  let s = `Risk exposed   = ${a} ÷ ${R.n1} = ${R.r1.toFixed(4)}\nRisk unexposed = ${c} ÷ ${R.n0} = ${R.r0.toFixed(4)}\nRR = ${R.r1.toFixed(4)} ÷ ${R.r0.toFixed(4)} = ${R.rr.toFixed(3)}\n`;
+  if (R.se!==null) s += `SE(ln RR) = √(1/${a} − 1/${R.n1} + 1/${c} − 1/${R.n0}) = ${R.se.toFixed(4)}\n95% CI = exp(${Math.log(R.rr).toFixed(4)} ± 1.96 × ${R.se.toFixed(4)}) = ${R.lo.toFixed(3)} to ${R.hi.toFixed(3)}\n` + (R.lo<=1 && R.hi>=1 ? "→ The CI includes 1: not statistically significant." : (R.rr>1 ? "→ The CI is above 1: higher risk in the exposed group." : "→ The CI is below 1: lower risk in the exposed group."));
+  else s += "A cell is 0, so this simple CI formula cannot be used.";
+  return s;
+}
+$("#rrGo").addEventListener("click", () => { $("#rrOut").textContent = rrText(+$("#rrA").value, +$("#rrB").value, +$("#rrC").value, +$("#rrD").value); });
+$("#rrGo").click();
+
+/* Tracing windows */
+function addDays(iso, n){ const d = new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const dmy = iso => { const d = new Date(iso+"T00:00:00Z"); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+function tracing(){
+  const d0 = $("#twD0").value, mn = +$("#twMin").value, mx = +$("#twMax").value, ct = $("#twCtrl").value;
+  const svg = $("#twSvg"); svg.innerHTML = "";
+  if (!d0 || !(mx>=mn) || !ct) { $("#twOut").textContent = "Enter day 0, the incubation range and the control date."; return; }
+  const sOpen = addDays(d0,-mx), sClose = addDays(d0,-mn);
+  const span = dayDiff(ct, sOpen) + 4, W=680, L=20, R=20, x = iso => L + (dayDiff(iso, sOpen)+2)*(W-L-R)/span;
+  svgEl("line",{x1:L,x2:W-R,y1:120,y2:120,class:"ax"},svg);
+  for (let k=0;k<=span;k++){ const iso = addDays(sOpen, k-2); if ((k-2)%2===0) { svgEl("line",{x1:x(iso),x2:x(iso),y1:116,y2:124,class:"ax"},svg); } }
+  svgEl("rect",{x:x(sOpen),y:24,width:Math.max(2,x(sClose)-x(sOpen)),height:30,rx:4,class:"d-win-s"},svg);
+  txt(svg, x(sOpen)+6, 44, "Window for SOURCE (trace-back)", "strong");
+  svgEl("rect",{x:x(sOpen),y:64,width:Math.max(2,x(ct)-x(sOpen)),height:30,rx:4,class:"d-win-p"},svg);
+  txt(svg, x(sOpen)+6, 84, "Window for SPREAD (trace-forward)", "strong");
+  [[sOpen,"opens"],[sClose,"source closes"],[d0,"day 0"],[ct,"controls"]].forEach(([iso,l],i) => {
+    svgEl("line",{x1:x(iso),x2:x(iso),y1:20,y2:120,style:"stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 3"},svg);
+    txt(svg, x(iso), 140 + (i%2)*16, `${l}: ${dmy(iso).replace(/ \d{4}$/,"")}`, "lbl", i===0?"start":(i===3?"end":"middle"));
+  });
+  $("#twOut").textContent = `Source window: ${dmy(sOpen)} to ${dmy(sClose)}  (day 0 − ${mx} to day 0 − ${mn})\nSpread window: ${dmy(sOpen)} to ${dmy(ct)}  (day 0 − ${mx} until effective controls)\nNote: the manual's Fig. 16 shows 29 Sep for this example; exact subtraction of 14 days from 12 Oct gives 28 Sep. A day either way does not matter, because you widen the window anyway.`;
+}
+$("#twGo").addEventListener("click", tracing); tracing();
+
+/* Kenya epidemic curve */
+function drawEpi(){
+  const svg = $("#exCurve"); if (!svg) return; svg.innerHTML = "";
+  const W=720,H=300,L=40,R=12,T=62,B=44, n=EPI.n.length, mx=60, bw=(W-L-R)/n;
+  const y = v => T + (H-T-B)*(1-v/mx);
+  [0,10,20,30,40,50,60].forEach(v => { svgEl("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),class:v?"gr":"ax"},svg); txt(svg, L-6, y(v)+4, v, "", "end"); });
+  txt(svg, 4, 14, "New cases per day", "lbl");
+  EPI.n.forEach((v,i) => {
+    const iso = addDays(EPI.start, i), x0 = L + i*bw;
+    if (v) { const h = y(0)-y(v); svgEl("path",{d:`M${x0+0.5} ${y(0)} V${y(v)+3} q0 -3 3 -3 H${x0+bw-3.5} q3 0 3 3 V${y(0)} Z`, class:"bar", "data-i":i},svg); }
+    if (i%3===0) txt(svg, x0+bw/2, H-B+16, iso.slice(8)+"/"+iso.slice(5,7), "", "middle");
+    const hit = svgEl("rect",{x:x0,y:T,width:bw,height:H-T-B,style:"fill:transparent"},svg);
+    hit.addEventListener("mousemove", ev => { showTip(ev, `${iso.slice(8)}/${iso.slice(5,7)}/2012 · ${v} new case${v===1?"":"s"}`); const b = $(`.bar[data-i="${i}"]`, svg); $$(".bar.hi",svg).forEach(z=>z.classList.remove("hi")); if (b) b.classList.add("hi"); });
+    hit.addEventListener("mouseleave", () => { hideTip(); $$(".bar.hi",svg).forEach(z=>z.classList.remove("hi")); });
+  });
+  txt(svg, L, H-8, "Date of onset (2012)", "lbl");
+  const mark = (dayIdx, label, row) => { const xm = L + dayIdx*bw + bw/2, ty = 26 + row*13; svgEl("line",{x1:xm,x2:xm,y1:ty-9,y2:y(0),style:"stroke:var(--alert);stroke-width:1;stroke-dasharray:3 3"},svg); txt(svg, xm+4, ty, label, "lbl"); };
+  mark(1,"1 Sep: Y8 moved along road",0); mark(10,"10 Sep: SAT2 confirmed",1); mark(13,"13 Sep: isolation stopped (day 14)",2);
+  const tb = $("#exCurveTable"); if (tb) tb.innerHTML = `<tr><th>Date</th><th class="num">New cases</th><th class="num">Cumulative</th></tr>` + EPI.n.map((v,i)=>{ const iso=addDays(EPI.start,i); const cum = EPI.n.slice(0,i+1).reduce((a,b)=>a+b,0); return `<tr><td>${iso.slice(8)}/${iso.slice(5,7)}/2012</td><td class="num">${v}</td><td class="num">${cum}</td></tr>`; }).join("");
+}
+drawEpi();
+(function(){ const tb = $("#irTable"); if (!tb) return;
+  tb.innerHTML = `<tr><th>Group</th><th>Name</th><th class="num">N (rows)</th><th class="num">Cases</th><th class="num">Cattle-days</th><th class="num">IR /100 cattle-days</th><th class="num">95% CI</th><th class="num">AR %</th><th>First onset</th></tr>` +
+  IRT.map(r=>`<tr${r[0]==="All"?' style="font-weight:600"':""}><td>${r[0]}</td><td>${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4].toLocaleString("en-GB")}</td><td class="num">${fmt(r[5], r[5]<0.2&&r[5]>0?3:2)}</td><td class="num">${r[6]===null?"–":fmt(r[6],2)+"–"+fmt(r[7],2)}</td><td class="num">${fmt(r[8],1)}</td><td>${r[9]}</td></tr>`).join("");
+})();
+
+/* Spread schematic */
+(function(){
+  const svg = $("#spreadSvg"); if (!svg) return;
+  const defs = svgEl("defs",{},svg); const mk = svgEl("marker",{id:"ah3",viewBox:"0 0 10 10",refX:9,refY:5,markerWidth:7,markerHeight:7,orient:"auto"},defs); svgEl("path",{d:"M0,0L10,5L0,10z",class:"d-arrow"},mk);
+  const box = (x,y,w,h,cls,t1,t2) => { svgEl("rect",{x,y,width:w,height:h,rx:6,class:cls},svg); txt(svg,x+8,y+18,t1,"d-tb"); if (t2) txt(svg,x+8,y+34,t2,"d-ts"); };
+  svgEl("rect",{x:0,y:0,width:720,height:330,rx:8,class:"d-sunk"},svg);
+  svgEl("path",{d:"M110 120 H560",style:"stroke:var(--line);stroke-width:10;fill:none"},svg);
+  txt(svg, 330, 112, "farm road", "d-tm", "middle");
+  box(10,95,95,50,"d-alt","Isolation","paddock (west)");
+  box(560,95,150,50,"d-alt","Y8 · index","onset 31/08");
+  svgEl("path",{d:"M556 136 C470 160 200 160 108 136",class:"d-line","marker-end":"url(#ah3)"},svg);
+  txt(svg, 330, 170, "1 Sep: Y8 driven along the road to isolation", "d-ta", "middle");
+  box(150,20,380,48,"d-box","Beside the road: Y7, Y10, H, C","first cases 05/09 (4 days after 1 Sep)");
+  box(150,190,380,48,"d-box","Y4, Y9, L2 (+ L5, D): first cases 06/09","point exposure linked to the road movement");
+  box(545,190,165,48,"d-box","D moved into","Y8's old paddock → 06/09");
+  box(10,262,250,56,"d-box","C → incubating fresh cows","moved into L1 (07/09) and L5 (06/09)");
+  box(268,262,244,56,"d-acc","Shared: parlour, troughs, dip","lactating L1–L5; all groups dipped");
+  box(520,262,190,62,"d-box","Later groups","Y5, Y6 07/09 · L3 11/09"); txt(svg,528,312,"L4 12/09 · Y2 13/09 · Y1 19/09","d-ts");
+  txt(svg, 710, 16, "Y3: no cases", "d-tm", "end");
+})();
+
+/* RR rows (exercise step 7) */
+(function(){
+  const host = $("#rrRows"); if (!host) return;
+  const K = ["a","b","c","d","rr","lo","hi"], LAB = ["a","b","c","d","RR","95% CI lower","95% CI upper"];
+  host.innerHTML = RRROWS.map(r => `<div class="q" data-rr="${r.id}"><p class="prompt">${esc(r.h)}</p><div class="grid-inputs" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))">${K.map((k,i)=>`<div class="field"><label for="rr_${r.id}_${k}">${LAB[i]}</label><input type="number" step="any" id="rr_${r.id}_${k}" style="width:100%"></div>`).join("")}<div class="field" style="grid-column:span 2"><label for="rr_${r.id}_v">H1 supported?</label><select id="rr_${r.id}_v"><option value="">Choose…</option><option>Supported</option><option>Not supported</option></select></div></div><div class="row"><button class="btn small chk" type="button">Check</button><button class="btn small ghost show" type="button" hidden>Show answer</button></div><div class="fbw" aria-live="polite"></div></div>`).join("");
+  RRROWS.forEach(r => {
+    const el = $(`[data-rr="${r.id}"]`, host), wid = "rr_"+r.id;
+    const check = silent => {
+      const val = k => parseFloat($(`#rr_${r.id}_${k}`).value);
+      const okc = [0,1,2,3].map(i => val(K[i]) === r.ans[i]);
+      const okr = Math.abs(val("rr") - r.ans[4]) <= 0.02, okl = Math.abs(val("lo") - r.ans[5]) <= 0.02, okh = Math.abs(val("hi") - r.ans[6]) <= 0.02;
+      const okv = $(`#rr_${r.id}_v`).value === r.v;
+      [...okc, okr, okl, okh].forEach((ok,i) => { const inp = $(`#rr_${r.id}_${K[i]}`); inp.classList.remove("ok","no"); inp.classList.add(ok?"ok":"no"); });
+      const vs = $(`#rr_${r.id}_v`); vs.classList.remove("ok","no"); vs.classList.add(okv?"ok":"no");
+      const all = okc.every(Boolean) && okr && okl && okh && okv;
+      let msg;
+      if (all) msg = `<b class="v">All correct.</b> ${esc(r.note)}`;
+      else if (!okc.every(Boolean)) msg = `<b class="v">Recheck the counts marked red.</b> Use COUNTIFS on the Animals sheet, and apply the restriction for this hypothesis. Exposure goes in rows (a, b), the reference group in the second row (c, d).`;
+      else if (!okr) msg = `<b class="v">Counts are right; recheck the RR.</b> RR = [a/(a+b)] ÷ [c/(c+d)].`;
+      else if (!okl || !okh) msg = `<b class="v">RR is right; recheck the CI.</b> SE = √(1/a − 1/(a+b) + 1/c − 1/(c+d)); limits = EXP(LN(RR) ± 1.96 × SE).`;
+      else msg = `<b class="v">Numbers are right; recheck your verdict.</b> Is the RR in the expected direction, and does the CI exclude 1?`;
+      $(".fbw", el).innerHTML = `<div class="fb ${all?"ok":"no"}"><p>${msg}</p></div>`;
+      $(".show", el).hidden = all;
+      S.w[wid] = {checked:true}; if (!silent) attempt(wid); else S.att[wid] = true;
+    };
+    $(".chk", el).addEventListener("click", () => check());
+    $(".show", el).addEventListener("click", () => { $(".fbw", el).insertAdjacentHTML("beforeend", `<div class="fb info"><p><b>Answer:</b> a = ${r.ans[0]}, b = ${r.ans[1]}, c = ${r.ans[2]}, d = ${r.ans[3]}; RR = ${r.ans[4].toFixed(2)} (95% CI ${r.ans[5].toFixed(2)}–${r.ans[6].toFixed(2)}). <b>${r.v}.</b> ${esc(r.note)}</p></div>`); $(".show", el).hidden = true; });
+    if (S.w[wid] && S.w[wid].checked) setTimeout(() => check(true), 0);
+  });
+})();
+
+/* ===================== INIT ===================== */
+$$(".mcq").forEach(renderMCQ); $$(".multi").forEach(renderMulti); $$(".cls").forEach(renderCls);
+$$(".seqw").forEach(renderSeq); $$(".numchk").forEach(renderNum); $$(".openq").forEach(renderOpen);
+bindPersist();
+refreshGates(); refreshProgress(); showView();
+
+</script>
+</body>
+</html>
